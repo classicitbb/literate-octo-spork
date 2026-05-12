@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PriceSmart Optical — Patient Experience</title>
+<style>
+:root {
+  --ps-navy: #003087;
+  --ps-red: #CC0000;
+  --ps-light-blue: #E8EEF7;
+  --ps-gold: #F5A623;
+  --white: #FFFFFF;
+  --off-white: #F7F9FC;
+  --gray-50: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-400: #94A3B8;
+  --gray-500: #64748B;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1E293B;
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --danger: #EF4444;
+  --danger-light: #FEE2E2;
+  --purple: #7C3AED;
+  --purple-light: #EDE9FE;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --shadow-card: 0 8px 32px rgba(0,48,135,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  /* overridable by store config */
+  --brand-primary: #003087;
+  --brand-accent: #EF4123;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--off-white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.view { display: none; }
+.view.active { display: block; }
+
+/* ═══ PATIENT TABLET ═══ */
+#patient-view {
+  min-height: 100vh;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--brand-primary) 80%, black) 0%, var(--brand-primary) 55%, color-mix(in srgb, var(--brand-primary) 70%, #4477FF) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 20px 20px 70px; position: relative; overflow: hidden;
+}
+#patient-view::before { content:''; position:absolute; top:-100px; right:-100px; width:400px; height:400px; border-radius:50%; background:rgba(255,255,255,0.04); pointer-events:none; }
+#patient-view::after { content:''; position:absolute; bottom:-80px; left:-80px; width:300px; height:300px; border-radius:50%; background:rgba(0,0,0,0.08); pointer-events:none; }
+
+.patient-topbar {
+  position: absolute; top: 14px; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; z-index: 5;
+}
+.patient-logo-img img { height: 36px; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
+.fullscreen-btn {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.7); border-radius: 8px; padding: 6px 10px;
+  font-size: 14px; cursor: pointer; transition: all 0.2s;
+}
+.fullscreen-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+.patient-header { text-align:center; margin-bottom:20px; margin-top:50px; position:relative; z-index:2; }
+.progress-dots { display:flex; gap:7px; justify-content:center; margin-bottom:6px; }
+.pdot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.25); transition:all 0.4s ease; }
+.pdot.active { background:white; width:22px; border-radius:4px; }
+.pdot.done { background:var(--ps-gold); }
+.progress-label { font-size:12px; color:rgba(255,255,255,0.5); }
+
+.card-stage { width:100%; max-width:620px; position:relative; z-index:2; min-height:460px; display:flex; align-items:center; justify-content:center; }
+.intake-card {
+  background:white; border-radius:var(--radius-xl); padding:32px 28px 24px;
+  box-shadow:var(--shadow-card); width:100%;
+  animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes cardIn { from{opacity:0;transform:translateY(40px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes cardOut { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(-30px) scale(0.95)} }
+
+.card-emoji { font-size:42px; text-align:center; margin-bottom:14px; display:block; }
+.card-question { font-size:21px; font-weight:700; color:var(--gray-800); text-align:center; line-height:1.3; margin-bottom:6px; }
+.card-subtitle { font-size:13px; color:var(--gray-400); text-align:center; margin-bottom:22px; }
+
+.options-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.opt-btn {
+  border:2px solid var(--gray-200); background:var(--gray-50); border-radius:14px; padding:13px 10px;
+  cursor:pointer; transition:all 0.2s ease; text-align:left; display:flex; flex-direction:column;
+  gap:4px; min-height:76px; justify-content:center; user-select:none;
+}
+.opt-btn:hover { border-color:var(--brand-primary); background:var(--ps-light-blue); transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,48,135,0.12); }
+.opt-btn.selected { border-color:var(--brand-primary); background:var(--brand-primary); color:white; transform:scale(1.02); }
+.opt-emoji { font-size:20px; line-height:1; }
+.opt-text { font-size:12.5px; font-weight:600; color:var(--gray-800); line-height:1.3; }
+.opt-btn.selected .opt-text { color:white; }
+
+/* CONTACT CARD */
+.contact-card h2 { font-size:20px; font-weight:800; color:var(--gray-800); margin-bottom:4px; text-align:center; }
+.contact-card p { font-size:13px; color:var(--gray-500); text-align:center; margin-bottom:20px; }
+.field-row { display:flex; gap:10px; }
+.form-field { margin-bottom:12px; flex:1; }
+.form-label-sm { display:block; font-size:11px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; }
+.form-input-sm {
+  width:100%; border:1.5px solid var(--gray-200); border-radius:10px;
+  padding:10px 12px; font-size:14px; color:var(--gray-800); background:var(--gray-50);
+  outline:none; font-family:inherit; transition:border-color 0.2s;
+}
+.form-input-sm:focus { border-color:var(--brand-primary); background:white; }
+.opt-note { font-size:11px; color:var(--gray-400); text-align:center; margin-top:6px; }
+
+/* WELCOME CARD */
+.welcome-card { text-align:center; }
+.welcome-icon { font-size:52px; margin-bottom:14px; display:block; }
+.welcome-title { font-size:26px; font-weight:800; color:var(--gray-800); margin-bottom:6px; }
+.welcome-sub { font-size:14px; color:var(--gray-600); line-height:1.6; margin-bottom:18px; max-width:440px; margin-left:auto; margin-right:auto; }
+.new-patient-toggle { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:18px; font-size:14px; color:var(--gray-600); cursor:pointer; }
+.toggle-box { width:20px; height:20px; border:2px solid var(--gray-400); border-radius:5px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+.toggle-box.checked { background:var(--brand-primary); border-color:var(--brand-primary); }
+.toggle-box.checked::after { content:'✓'; color:white; font-size:11px; font-weight:700; }
+.start-btn {
+  background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF));
+  color:white; border:none; border-radius:50px; padding:15px 40px;
+  font-size:15px; font-weight:700; cursor:pointer; transition:all 0.25s ease;
+  box-shadow:0 4px 20px rgba(0,48,135,0.35); letter-spacing:0.02em; width:100%;
+}
+.start-btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,48,135,0.45); }
+
+/* THANK YOU */
+.thankyou-card { text-align:center; }
+.ty-icon { font-size:60px; margin-bottom:14px; display:block; animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes popIn { from{transform:scale(0)} to{transform:scale(1)} }
+.ty-title { font-size:26px; font-weight:800; color:var(--gray-800); margin-bottom:6px; }
+.ty-sub { font-size:14px; color:var(--gray-600); line-height:1.6; margin-bottom:20px; }
+.ty-chips { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-bottom:16px; }
+.ty-chip { background:var(--ps-light-blue); color:var(--ps-navy); border-radius:50px; padding:5px 12px; font-size:11px; font-weight:600; }
+.ty-chip.red { background:#FFEAEA; color:var(--ps-red); }
+.reset-btn { background:none; border:2px solid var(--gray-200); border-radius:50px; padding:9px 22px; font-size:13px; color:var(--gray-400); cursor:pointer; margin-top:10px; }
+
+.next-row { margin-top:18px; display:flex; justify-content:space-between; align-items:center; }
+.next-btn {
+  background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF));
+  color:white; border:none; border-radius:50px; padding:12px 28px;
+  font-size:14px; font-weight:700; cursor:pointer; transition:all 0.25s;
+  box-shadow:0 4px 16px rgba(0,48,135,0.3); opacity:0.4; pointer-events:none;
+}
+.next-btn.ready { opacity:1; pointer-events:all; }
+.next-btn.ready:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,48,135,0.4); }
+.back-btn { background:none; border:none; color:var(--gray-400); font-size:13px; cursor:pointer; padding:8px; transition:color 0.2s; }
+.back-btn:hover { color:var(--gray-600); }
+.q-counter { font-size:12px; color:var(--gray-400); font-weight:500; }
+
+/* ═══ MODE STRIP ═══ */
+.mode-strip {
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(12px);
+  display:flex; justify-content:center; gap:4px; padding:8px 16px 10px; z-index:999;
+}
+.mode-btn {
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+  color:rgba(255,255,255,0.6); border-radius:50px; padding:6px 14px;
+  font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s; letter-spacing:0.03em;
+}
+.mode-btn.active, .mode-btn:hover { background:rgba(255,255,255,0.2); color:white; border-color:rgba(255,255,255,0.35); }
+
+/* ═══ PIN MODAL ═══ */
+.pin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; z-index:1100; animation:fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.pin-overlay.hidden { display:none; }
+.pin-box { background:white; border-radius:var(--radius-xl); padding:32px 36px; width:320px; text-align:center; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
+.pin-title { font-size:19px; font-weight:700; color:var(--gray-800); margin-bottom:5px; }
+.pin-sub { font-size:13px; color:var(--gray-400); margin-bottom:22px; }
+.pin-dots { display:flex; justify-content:center; gap:12px; margin-bottom:22px; }
+.pin-dot { width:13px; height:13px; border-radius:50%; border:2px solid var(--gray-200); transition:all 0.2s; }
+.pin-dot.filled { background:var(--ps-navy); border-color:var(--ps-navy); }
+.pin-dot.error { background:var(--danger); border-color:var(--danger); animation:shake 0.3s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+.pin-key { background:var(--gray-50); border:1.5px solid var(--gray-200); border-radius:12px; padding:13px; font-size:19px; font-weight:600; color:var(--gray-800); cursor:pointer; transition:all 0.15s; user-select:none; }
+.pin-key:active { background:var(--ps-light-blue); transform:scale(0.95); }
+.pin-key.del { font-size:15px; color:var(--gray-400); }
+.pin-key.empty { visibility:hidden; }
+.pin-hint { font-size:11px; color:var(--gray-400); margin-top:12px; }
+
+/* ═══ CSR VIEW ═══ */
+#csr-view { min-height:100vh; background:var(--gray-100); padding:16px 16px 80px; }
+.csr-header { background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF)); border-radius:var(--radius-lg); padding:18px 22px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+.csr-header h1 { font-size:19px; font-weight:700; color:white; }
+.csr-header p { font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px; }
+.badge-red { background:var(--brand-accent); color:white; border-radius:50px; padding:4px 10px; font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.section-card { background:white; border-radius:var(--radius-lg); padding:18px 20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.section-card h3 { font-size:14px; font-weight:700; color:var(--brand-primary); margin-bottom:12px; display:flex; align-items:center; gap:7px; }
+.section-card h3 .icon { font-size:17px; }
+
+.patient-selector { display:flex; flex-direction:column; gap:7px; }
+.patient-row { display:flex; align-items:center; justify-content:space-between; padding:11px 13px; background:var(--gray-50); border:1.5px solid var(--gray-200); border-radius:12px; cursor:pointer; transition:all 0.2s; }
+.patient-row:hover, .patient-row.selected { border-color:var(--brand-primary); background:var(--ps-light-blue); }
+.patient-row-info { display:flex; flex-direction:column; gap:1px; }
+.patient-row-name { font-size:14px; font-weight:600; color:var(--gray-800); }
+.patient-row-meta { font-size:11px; color:var(--gray-400); }
+.pr-score { font-size:10px; font-weight:700; padding:3px 7px; border-radius:50px; }
+.pr-high { background:var(--success-light); color:#065F46; }
+.pr-mid { background:var(--warning-light); color:#92400E; }
+.pr-low { background:var(--danger-light); color:#991B1B; }
+
+/* Contact Edit in CSR */
+.contact-edit-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.contact-edit-row.full { grid-template-columns:1fr; }
+
+.outcome-btns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; margin-bottom:12px; }
+.outcome-btn { border:2px solid var(--gray-200); background:var(--gray-50); border-radius:12px; padding:11px 7px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.outcome-btn .ob-icon { font-size:22px; display:block; margin-bottom:3px; }
+.outcome-btn .ob-text { font-size:11px; font-weight:600; color:var(--gray-600); }
+.outcome-btn.selected-green { border-color:var(--success); background:var(--success-light); }
+.outcome-btn.selected-green .ob-text { color:#065F46; }
+.outcome-btn.selected-red { border-color:var(--danger); background:var(--danger-light); }
+.outcome-btn.selected-red .ob-text { color:#991B1B; }
+.outcome-btn.selected-yellow { border-color:var(--warning); background:var(--warning-light); }
+.outcome-btn.selected-yellow .ob-text { color:#92400E; }
+
+.form-group { margin-bottom:12px; }
+.form-label { display:block; font-size:11px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; }
+.form-select, .form-textarea, .form-input { width:100%; border:1.5px solid var(--gray-200); border-radius:10px; padding:9px 11px; font-size:14px; color:var(--gray-800); background:var(--gray-50); outline:none; font-family:inherit; transition:border-color 0.2s; }
+.form-select:focus, .form-textarea:focus, .form-input:focus { border-color:var(--brand-primary); background:white; }
+.form-textarea { resize:vertical; min-height:72px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+.skill-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.skill-label { font-size:12.5px; font-weight:600; color:var(--gray-700); width:155px; flex-shrink:0; }
+.skill-stars { display:flex; gap:5px; }
+.star { width:30px; height:30px; border-radius:8px; border:1.5px solid var(--gray-200); display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; transition:all 0.15s; color:var(--gray-400); font-weight:600; background:var(--gray-50); }
+.star.active { background:var(--brand-primary); border-color:var(--brand-primary); color:white; }
+.star.active-warn { background:var(--warning); border-color:var(--warning); color:white; }
+.star.active-danger { background:var(--danger); border-color:var(--danger); color:white; }
+
+.submit-btn { width:100%; background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF)); color:white; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,48,135,0.3); transition:all 0.2s; margin-top:4px; }
+.submit-btn:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(0,48,135,0.4); }
+.success-toast { text-align:center; padding:14px; font-size:14px; color:var(--success); font-weight:600; background:var(--success-light); border-radius:10px; margin-top:8px; display:none; }
+
+/* ═══ ADMIN VIEW ═══ */
+#admin-view { min-height:100vh; background:var(--gray-100); padding:16px 16px 80px; }
+.admin-header { background:linear-gradient(135deg, #0f172a, var(--brand-primary)); border-radius:var(--radius-lg); padding:18px 22px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+.admin-header h1 { font-size:19px; font-weight:800; color:white; }
+.admin-header p { font-size:12px; color:rgba(255,255,255,0.55); margin-top:2px; }
+.admin-nav { display:flex; gap:5px; overflow-x:auto; padding-bottom:2px; margin-bottom:14px; scrollbar-width:none; }
+.admin-nav::-webkit-scrollbar { display:none; }
+.admin-tab { background:white; border:1.5px solid var(--gray-200); border-radius:50px; padding:7px 16px; font-size:12px; font-weight:600; color:var(--gray-600); cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.admin-tab.active { background:var(--brand-primary); border-color:var(--brand-primary); color:white; }
+.admin-panel { display:none; }
+.admin-panel.active { display:block; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px; }
+.stat-card { background:white; border-radius:var(--radius-lg); padding:14px 16px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.stat-value { font-size:30px; font-weight:800; color:var(--brand-primary); line-height:1; margin-bottom:3px; }
+.stat-label { font-size:11px; font-weight:600; color:var(--gray-400); text-transform:uppercase; letter-spacing:0.05em; }
+
+.patient-profile-card { background:white; border-radius:var(--radius-lg); padding:14px 16px; margin-bottom:9px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.ppc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.ppc-name { font-size:15px; font-weight:700; color:var(--gray-800); }
+.ppc-time { font-size:11px; color:var(--gray-400); }
+.ppc-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.tag { display:inline-flex; align-items:center; gap:3px; background:var(--ps-light-blue); color:var(--ps-navy); border-radius:50px; padding:3px 9px; font-size:10px; font-weight:600; }
+.tag.lens { background:var(--purple-light); color:var(--purple); }
+.tag.budget { background:var(--success-light); color:#065F46; }
+.tag.urgent { background:var(--warning-light); color:#92400E; }
+.tag.new-pt { background:#FEE2E2; color:#991B1B; }
+.ppc-reco { background:var(--gray-50); border-left:3px solid var(--brand-primary); border-radius:0 8px 8px 0; padding:8px 12px; font-size:12px; color:var(--gray-600); line-height:1.5; }
+.ppc-reco strong { color:var(--brand-primary); }
+.ppc-outcome { display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding-top:9px; border-top:1px solid var(--gray-100); }
+.outcome-pill { padding:3px 9px; border-radius:50px; font-size:10px; font-weight:700; }
+.op-sold { background:var(--success-light); color:#065F46; }
+.op-nosale { background:var(--danger-light); color:#991B1B; }
+.op-pending { background:var(--warning-light); color:#92400E; }
+
+.focus-bar-wrap { margin-bottom:12px; }
+.focus-bar-label { display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; color:var(--gray-700); margin-bottom:4px; }
+.focus-bar-track { background:var(--gray-100); border-radius:50px; height:9px; overflow:hidden; }
+.focus-bar-fill { height:100%; border-radius:50px; transition:width 1.2s cubic-bezier(0.34,1.56,0.64,1); }
+.csr-perf-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--gray-100); }
+.csr-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF)); color:white; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.csr-name { font-size:13px; font-weight:600; color:var(--gray-800); }
+.csr-meta { font-size:10px; color:var(--gray-400); }
+.csr-score-badge { margin-left:auto; font-size:15px; font-weight:800; padding:3px 10px; border-radius:7px; }
+.score-a { background:var(--success-light); color:#065F46; }
+.score-b { background:var(--warning-light); color:#92400E; }
+.score-c { background:var(--danger-light); color:#991B1B; }
+.tip-card { background:linear-gradient(135deg,#EDE9FE,#DDD6FE); border-radius:11px; padding:11px 13px; margin-bottom:9px; display:flex; gap:9px; align-items:flex-start; }
+.tip-icon { font-size:19px; flex-shrink:0; }
+.tip-text { font-size:12px; color:#3730A3; line-height:1.5; }
+.tip-text strong { font-weight:700; display:block; margin-bottom:1px; }
+.empty-state { text-align:center; padding:36px 20px; color:var(--gray-400); font-size:13px; }
+.empty-state .es-icon { font-size:38px; margin-bottom:9px; }
+
+/* ═══ STORE SETUP TAB ═══ */
+.store-url-box {
+  background:var(--gray-50); border:1.5px dashed var(--gray-200); border-radius:12px;
+  padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:12px;
+}
+.store-url-text { font-size:12px; color:var(--brand-primary); font-weight:600; word-break:break-all; flex:1; }
+.copy-btn { background:var(--brand-primary); color:white; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.copy-btn:hover { opacity:0.85; }
+.qr-section { text-align:center; padding:16px; }
+.qr-section img { border:3px solid white; border-radius:10px; box-shadow:var(--shadow-card); max-width:160px; }
+.qr-label { font-size:12px; color:var(--gray-500); margin-top:8px; }
+.print-qr-btn { background:none; border:1.5px solid var(--brand-primary); color:var(--brand-primary); border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px; }
+.color-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.color-pick { display:flex; flex-direction:column; gap:5px; }
+.color-pick label { font-size:11px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.05em; }
+.color-pick input[type=color] { width:100%; height:38px; border:1.5px solid var(--gray-200); border-radius:8px; padding:3px 4px; cursor:pointer; background:white; }
+.save-config-btn { width:100%; background:linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 70%, #4477FF)); color:white; border:none; border-radius:10px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
+
+/* ═══ PRINT STYLES ═══ */
+@media print {
+  body > * { display:none !important; }
+  #print-page { display:block !important; }
+}
+#print-page {
+  display:none;
+  position:fixed; inset:0; background:white; z-index:2000;
+  flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px;
+}
+#print-page.visible { display:flex; }
+.print-logo-wrap { background:#003087; border-radius:14px; padding:14px 24px; margin-bottom:10px; }
+.print-logo-wrap img { height:44px; display:block; }
+.print-store { font-size:14px; color:var(--gray-500); margin-bottom:28px; }
+.print-qr { border:4px solid var(--brand-primary); border-radius:12px; padding:8px; margin-bottom:20px; }
+.print-instructions { font-size:16px; font-weight:600; color:var(--gray-700); max-width:300px; line-height:1.5; margin-bottom:8px; }
+.print-url { font-size:11px; color:var(--gray-400); word-break:break-all; max-width:300px; }
+.close-print-btn { margin-top:24px; background:none; border:2px solid var(--gray-200); border-radius:50px; padding:9px 24px; font-size:13px; color:var(--gray-500); cursor:pointer; }
+
+@media (max-width:480px) {
+  .intake-card { padding:24px 18px 20px; }
+  .card-question { font-size:18px; }
+  .options-grid { gap:8px; }
+  .opt-btn { min-height:68px; padding:11px 9px; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .form-row { grid-template-columns:1fr; }
+  .contact-edit-row { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ PATIENT VIEW ═══════════ -->
+<div id="patient-view" class="view active">
+  <div class="patient-topbar">
+    <div class="patient-logo-img">
+      <img id="navLogoImg" src="" alt="PriceSmart Optical">
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+  </div>
+  <div class="patient-header">
+    <div class="progress-dots" id="progressDots"></div>
+    <div class="progress-label" id="progressLabel"></div>
+  </div>
+  <div class="card-stage" id="cardStage"></div>
+</div>
+
+<!-- ═══════════ CSR VIEW ═══════════ -->
+<div id="csr-view" class="view">
+  <div class="csr-header">
+    <div>
+      <img id="csrLogoImg" src="" alt="PriceSmart Optical" style="height:28px;display:block;margin-bottom:8px;opacity:0.95">
+      <h1>📋 Post-Visit Assessment</h1><p>Log the interaction after your patient leaves</p>
+    </div>
+    <span class="badge-red">CSR</span>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="icon">👤</span> Select Today's Patient</h3>
+    <div class="patient-selector" id="csrPatientList"></div>
+  </div>
+
+  <div class="section-card" id="contactEditSection" style="display:none">
+    <h3><span class="icon">📝</span> Patient Contact Info <span style="font-size:11px;font-weight:400;color:var(--gray-400)">(editable by CSR)</span></h3>
+    <div class="contact-edit-row">
+      <div class="form-field">
+        <label class="form-label-sm">First Name</label>
+        <input type="text" class="form-input-sm" id="csrEditName" placeholder="Name">
+      </div>
+      <div class="form-field">
+        <label class="form-label-sm">Phone</label>
+        <input type="tel" class="form-input-sm" id="csrEditPhone" placeholder="Phone">
+      </div>
+    </div>
+    <div class="contact-edit-row full">
+      <div class="form-field">
+        <label class="form-label-sm">Email (optional)</label>
+        <input type="email" class="form-input-sm" id="csrEditEmail" placeholder="Email address">
+      </div>
+    </div>
+    <button onclick="saveContactEdit()" style="background:var(--brand-primary);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">Update Contact Info</button>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="icon">💰</span> Transaction Outcome</h3>
+    <div class="outcome-btns">
+      <div class="outcome-btn" onclick="selectOutcome(this,'purchased','selected-green')" data-val="purchased">
+        <span class="ob-icon">✅</span><span class="ob-text">Purchased</span>
+      </div>
+      <div class="outcome-btn" onclick="selectOutcome(this,'no-sale','selected-red')" data-val="no-sale">
+        <span class="ob-icon">❌</span><span class="ob-text">No Sale</span>
+      </div>
+      <div class="outcome-btn" onclick="selectOutcome(this,'followup','selected-yellow')" data-val="followup">
+        <span class="ob-icon">🔄</span><span class="ob-text">Follow-up</span>
+      </div>
+    </div>
+    <div id="purchaseFields" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount ($)</label>
+          <input type="number" class="form-input" id="purchaseAmount" placeholder="e.g. 349">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Invoice / Sale #</label>
+          <input type="text" class="form-input" id="invoiceNumber" placeholder="e.g. INV-00142">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">What was purchased?</label>
+        <select class="form-select" id="purchaseType">
+          <option value="">— Select —</option>
+          <option>Frames only</option>
+          <option>Frames + single vision lenses</option>
+          <option>Frames + progressive lenses</option>
+          <option>Frames + lenses + upgrades (blue light, AR, etc.)</option>
+          <option>Contacts only</option>
+          <option>Contacts + glasses</option>
+          <option>Sunglasses</option>
+        </select>
+      </div>
+    </div>
+    <div id="noSaleFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Primary reason (no sale)</label>
+        <select class="form-select" id="noSaleReason">
+          <option value="">— Select most likely reason —</option>
+          <option>Price / budget concern</option>
+          <option>Wanted to think about it / compare</option>
+          <option>Preferred a style we didn't carry</option>
+          <option>Already bought glasses recently elsewhere</option>
+          <option>Came only for the eye exam</option>
+          <option>Felt rushed or didn't get enough attention</option>
+          <option>Couldn't find the right fit</option>
+          <option>Prescription not ready / needs update</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div id="followupFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Follow-up note</label>
+        <input type="text" class="form-input" id="followupNote" placeholder="e.g. 'Coming back Thursday with spouse to choose frames'">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes / What was discussed</label>
+      <textarea class="form-textarea" id="csrNotes" placeholder="e.g. Showed three frames — liked the blue titanium pair but hesitated on price. Will call back."></textarea>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="icon">🎯</span> My Self-Assessment <span style="font-size:11px;font-weight:400;color:var(--gray-400)">(1 = needs work · 5 = nailed it)</span></h3>
+    <div id="skillRows"></div>
+  </div>
+
+  <div class="section-card">
+    <h3><span class="icon">👋</span> Your Name</h3>
+    <input type="text" class="form-input" id="csrName" placeholder="Your name or initials">
+  </div>
+
+  <button class="submit-btn" onclick="submitCSRAssessment()">Save Assessment</button>
+  <div class="success-toast" id="csrSuccess">✅ Assessment saved successfully!</div>
+</div>
+
+<!-- ═══════════ ADMIN VIEW ═══════════ -->
+<div id="admin-view" class="view">
+  <div class="admin-header">
+    <div>
+      <img id="adminLogoImg" src="" alt="PriceSmart Optical" style="height:28px;display:block;margin-bottom:8px;opacity:0.95">
+      <h1>📊 Optical Insights</h1><p id="adminDateLine">Loading…</p>
+    </div>
+    <span class="badge-red">ADMIN</span>
+  </div>
+  <div class="admin-nav">
+    <div class="admin-tab active" onclick="adminTab(this,'overview')">Overview</div>
+    <div class="admin-tab" onclick="adminTab(this,'patients')">Patients</div>
+    <div class="admin-tab" onclick="adminTab(this,'csr-perf')">CSR Performance</div>
+    <div class="admin-tab" onclick="adminTab(this,'focus')">Focus Areas</div>
+    <div class="admin-tab" onclick="adminTab(this,'setup')">⚙️ Store Setup</div>
+  </div>
+  <div class="admin-panel active" id="panel-overview">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="section-card"><h3><span class="icon">🔥</span> Top Opportunities</h3><div id="topOpportunities"></div></div>
+    <div class="section-card"><h3><span class="icon">💡</span> Coaching Insights</h3><div id="insightTips"></div></div>
+  </div>
+  <div class="admin-panel" id="panel-patients"><div id="patientProfiles"></div></div>
+  <div class="admin-panel" id="panel-csr-perf">
+    <div class="section-card"><h3><span class="icon">🏆</span> CSR Scoreboard</h3><div id="csrScoreboard"></div></div>
+    <div class="section-card" style="margin-top:12px"><h3><span class="icon">📊</span> Skill Breakdown</h3><div id="csrSkillBreakdown"></div></div>
+  </div>
+  <div class="admin-panel" id="panel-focus">
+    <div class="section-card">
+      <h3><span class="icon">🎯</span> Conversion Focus Areas</h3>
+      <p style="font-size:11px;color:var(--gray-400);margin-bottom:14px;">Based on today's patient responses. Higher % = bigger opportunity or gap.</p>
+      <div id="focusBars"></div>
+    </div>
+    <div class="section-card" style="margin-top:12px"><h3><span class="icon">👓</span> Lens Upsell Pipeline</h3><div id="lensOpportunities"></div></div>
+  </div>
+  <div class="admin-panel" id="panel-setup">
+    <div class="section-card">
+      <h3><span class="icon">🏪</span> Store Identity</h3>
+      <div class="form-group">
+        <label class="form-label">Store Name</label>
+        <input type="text" class="form-input" id="cfgStoreName" placeholder="e.g. PriceSmart Optical — San Fernando">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Store Address</label>
+        <input type="text" class="form-input" id="cfgAddress" placeholder="e.g. 12 Main Street, Port of Spain">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Welcome Message (shown on tablet)</label>
+        <textarea class="form-textarea" id="cfgWelcomeMsg" placeholder="While you wait, we'd love to get to know your style a little better…"></textarea>
+      </div>
+      <div class="color-row">
+        <div class="color-pick"><label>Brand Color</label><input type="color" id="cfgPrimary" value="#003087"></div>
+        <div class="color-pick"><label>Accent Color</label><input type="color" id="cfgAccent" value="#CC0000"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3><span class="icon">🔐</span> Staff PINs</h3>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">CSR PIN (4 digits)</label><input type="number" class="form-input" id="cfgCsrPin" placeholder="e.g. 1234" maxlength="4"></div>
+        <div class="form-group"><label class="form-label">Admin PIN (4 digits)</label><input type="number" class="form-input" id="cfgAdminPin" placeholder="e.g. 9999" maxlength="4"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3><span class="icon">🔗</span> Your Store Link</h3>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px;">Share this URL with staff or load it on any tablet or phone. Bookmark it or add to home screen for kiosk mode.</p>
+      <div class="store-url-box">
+        <span class="store-url-text" id="storeUrlDisplay">—</span>
+        <button class="copy-btn" onclick="copyStoreUrl()">Copy</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Store ID (part of your URL)</label>
+        <input type="text" class="form-input" id="cfgStoreId" placeholder="e.g. trinidad-branch-1" oninput="updateUrlPreview()">
+      </div>
+      <div class="qr-section">
+        <img id="storeQrCode" src="" alt="QR Code" style="max-width:160px;display:none">
+        <div class="qr-label" id="qrLabel">Save your store first to generate QR code</div>
+        <br><button class="print-qr-btn" onclick="showPrintPage()" id="printQrBtn" style="display:none">🖨️ Print QR Code</button>
+      </div>
+    </div>
+    <button class="save-config-btn" onclick="saveStoreConfig()">💾 Save Store Settings</button>
+    <div class="success-toast" id="configSuccess" style="margin-top:8px">✅ Store settings saved!</div>
+  </div>
+</div>
+
+<!-- ═══ MODE STRIP ═══ -->
+<div class="mode-strip">
+  <button class="mode-btn active" id="modePatient" onclick="requestMode('patient')">🏥 Patient</button>
+  <button class="mode-btn" id="modeCSR" onclick="requestMode('csr')">📋 CSR</button>
+  <button class="mode-btn" id="modeAdmin" onclick="requestMode('admin')">📊 Admin</button>
+</div>
+
+<!-- ═══ PIN MODAL ═══ -->
+<div class="pin-overlay hidden" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-title" id="pinTitle">Staff Access</div>
+    <div class="pin-sub" id="pinSub">Enter your 4-digit PIN</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key empty"></button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinBack()">⌫</button>
+    </div>
+    <p class="pin-hint" id="pinHint"></p>
+  </div>
+</div>
+
+<!-- ═══ PRINT PAGE ═══ -->
+<div id="print-page">
+  <div class="print-logo-wrap"><img id="printLogoImg" src="" alt="PriceSmart Optical"></div>
+  <div class="print-store" id="printStoreAddr"></div>
+  <div class="print-qr"><img id="printQrImg" src="" alt="QR" style="width:220px;height:220px"></div>
+  <div class="print-instructions">📱 Scan to complete your pre-visit form while you wait</div>
+  <div class="print-url" id="printUrl"></div>
+  <button class="close-print-btn" onclick="hidePrintPage()">← Back</button>
+</div>
+
+<script>
+// ════════════════════════════════════
+//  BRAND LOGO (SVG data URI — white wordmark + red sunburst)
+// ════════════════════════════════════
+const _PS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="102" version="1.1" viewBox="0 0 304 102" width="304"><defs><radialGradient cx="50%" cy="56.7649816%" fx="50%" fy="56.7649816%" gradientTransform="translate(0.500000,0.567650),scale(0.864769,1.000000),rotate(90.000000),translate(-0.500000,-0.567650)" id="psRG1" r="85.9259053%"><stop offset="0%" stop-color="#EF4123"/><stop offset="47.7545892%" stop-color="#DE3A24"/><stop offset="100%" stop-color="#650A2E"/></radialGradient><path d="M44.2356568,0 C43.9140172,0.00203999755 43.5005777,0.284239659 43.0449783,0.86631896 L33.0129503,13.6489436 L22.9816024,0.86631896 C22.5253229,0.284239659 22.1125634,0.00203999755 21.7909238,0 C21.3509643,0 21.0823646,0.529719364 21.1116046,1.54155815 L21.5658441,17.8533786 L5.61374319,14.5003026 C3.89742525,14.139903 3.45134579,14.9103421 4.61346439,16.2207005 L15.4261314,28.3981259 L1.06794865,36.0712367 C-0.479049495,36.8974357 -0.328089677,37.7746347 1.40862824,38.0330344 L17.478369,40.4096315 C17.478369,40.4096315 11.4556162,55.3968135 11.4086962,55.5124134 C10.4022974,58.0182104 12.9196544,57.1185715 13.8390133,55.7796531 C17.2546492,50.804099 22.7143627,47.3293032 28.6412356,46.2141045 C22.8496825,44.3570268 18.6540875,38.9319933 18.6540875,32.523001 C18.6540875,24.5894505 25.0814398,18.1559782 33.0129503,18.1450982 C40.9444608,18.1559782 47.3718131,24.5894505 47.3718131,32.523001 C47.3718131,38.9319933 43.1768981,44.3570268 37.3846651,46.2141045 C43.311538,47.3293032 48.7712514,50.804099 52.1875673,55.7796531 C53.1069262,57.1185715 55.6236032,58.0182104 54.6172044,55.5124134 C54.5709644,55.3968135 48.5482117,40.4096315 48.5482117,40.4096315 L64.6172724,38.0330344 C66.3546703,37.7746347 66.5049501,36.8974357 64.957952,36.0712367 L50.5997692,28.3981259 L61.4124362,16.2207005 C62.5752348,14.9103421 62.1291554,14.139903 60.4128374,14.5003026 L44.4600566,17.8533786 L44.914296,1.54155815 C44.943536,0.529719364 44.6756163,0 44.2356568,0 Z" id="psSB"/></defs><g fill="none" fill-rule="evenodd"><g fill="#FFFFFF" transform="translate(0,52.121597)"><path d="M0,48.0813823 L6.10639267,48.0813823 L6.10639267,29.129805 C7.51059099,29.4800046 9.19494897,29.5507245 11.0200668,29.5507245 C16.9863796,29.5507245 22.2509333,27.7963266 25.4802494,24.3555308 C27.8663666,21.8986937 29.129805,18.5306578 29.129805,14.2487029 C29.129805,10.036788 27.5855269,6.59803208 24.98861,4.35131478 C22.1815734,1.82375781 17.7595387,0.420919495 11.7225059,0.420919495 C6.80815183,0.420919495 2.94847646,0.84183899 0,1.3321184 L0,48.0813823 Z M6.10639267,5.75483309 C7.16039141,5.47467343 9.19494897,5.26387368 11.8619058,5.26387368 C18.6013777,5.26387368 23.0234124,8.28171006 23.0234124,14.5295426 C23.0234124,21.0568547 18.5306578,24.6370504 11.1615066,24.6370504 C9.12558905,24.6370504 7.43987107,24.4969706 6.10639267,24.145411 L6.10639267,5.75483309 Z M32.9201205,48.0813823 L39.0265132,48.0813823 L39.0265132,29.971644 C39.0265132,28.9190053 39.167953,27.9357265 39.3080328,27.0938875 C40.1498718,22.461053 42.7019088,18.5646577 47.0532235,18.5646577 C47.8950625,18.5646577 48.5267818,18.5156978 49.158501,18.6557776 L49.158501,14.143983 C48.5975017,14.0025432 48.1058623,13.9331833 47.4034231,13.9331833 C43.2629081,13.9331833 40.0805119,16.2139005 38.5362338,20.7773751 L38.2553941,20.7773751 L38.0445943,14.1086231 L32.6392808,14.1086231 C32.8494006,17.2665393 32.9201205,20.7066552 32.9201205,24.7077704 L32.9201205,48.0813823 Z M53.1704962,48.0813823 L59.3476088,48.0813823 L59.3476088,14.1086231 L53.1704962,14.1086231 L53.1704962,48.0813823 Z M90.6527312,42.1857894 C88.8983333,42.9569085 86.5808961,43.8694674 83.0714203,43.8694674 C76.3339884,43.8694674 71.2802345,39.0265132 71.2802345,31.1657226 C71.2802345,24.0760511 75.4914694,18.319858 83.2822201,18.319858 C86.651616,18.319858 88.9683732,19.0916571 90.4419315,19.9334961 L91.8468098,15.1612618 C90.1610918,14.3187428 86.9324557,13.4061839 83.2822201,13.4061839 C72.1914334,13.4061839 65.032402,20.9874948 65.032402,31.4452023 C65.032402,41.8335498 71.701154,48.7838215 81.9480617,48.7838215 C86.5115362,48.7838215 90.0903719,47.6604628 91.70537,46.8186238 L90.6527312,42.1857894 Z M122.731013,32.2183613 C122.800373,31.5866421 122.941812,30.6033633 122.941812,29.3399248 C122.941812,23.0927723 119.992656,13.335464 108.902549,13.335464 C99.0051612,13.335464 92.9681284,21.4084143 92.9681284,31.656002 C92.9681284,41.9042697 99.2159609,48.7838215 109.675028,48.7838215 C115.078982,48.7838215 118.800617,47.6604628 120.975935,46.677184 L119.922616,42.2551493 C117.606539,43.2384281 114.939582,44.0095472 110.516867,44.0095472 C104.340435,44.0095472 99.0051612,40.5707913 98.8657614,32.2183613 L122.731013,32.2183613 Z M98.9344413,27.7963266 C99.4260807,23.5136918 102.164437,17.7581787 108.41227,17.7581787 C115.360502,17.7581787 117.04418,23.8652514 116.97482,27.7963266 L98.9344413,27.7963266 Z M125.467329,45.9053849 C128.134966,47.3789431 133.47024,48.7838215 138.874193,48.7838215 C151.860818,48.7838215 157.96721,42.0443495 157.96721,34.1128391 C157.96721,27.4440871 154.036135,23.0927723 145.682345,20.004216 C139.575953,17.6874588 136.908996,16.3546604 136.908996,13.335464 C136.908996,10.8786269 139.155033,8.77334947 143.787867,8.77334947 C148.420702,8.77334947 151.790098,10.1075079 153.684576,11.0200668 L156.070693,2.38611714 C153.263656,1.12199865 149.333261,0 143.997987,0 C132.838521,0 126.099049,6.17711259 126.099049,14.2487029 C126.099049,21.1275746 131.223523,25.4788894 139.084313,28.2172461 C144.771146,30.2531637 147.015824,31.9368417 147.015824,34.8853181 C147.015824,37.9738744 144.419587,40.009792 139.505233,40.009792 C134.943798,40.009792 130.521083,38.5348738 127.643327,37.0613155 L125.467329,45.9053849 Z M161.357006,48.0813823 L171.745354,48.0813823 L171.745354,28.0771663 C171.745354,27.2339673 171.816074,26.2520485 172.166273,25.4095295 C172.797993,23.6551316 174.412991,21.5484941 177.150667,21.5484941 C180.518703,21.5484941 182.062982,24.4969706 182.062982,28.8482854 L182.062982,48.0813823 L192.452009,48.0813823 L192.452009,28.0064464 C192.452009,27.1646074 192.592769,26.0412488 192.874289,25.2687697 C193.574688,23.2328521 195.329766,21.5484941 197.786603,21.5484941 C201.226719,21.5484941 202.840357,24.4262507 202.840357,29.4092847 L202.840357,48.0813823 L213.230064,48.0813823 L213.230064,27.8650066 C213.230064,17.6180989 208.24567,12.9852644 201.647638,12.9852644 C199.120081,12.9852644 197.014804,13.5462637 195.118966,14.6696224 C193.506008,15.6529012 191.96173,17.0557395 190.696931,18.8101374 L190.556851,18.8101374 C189.083293,15.2319817 185.573817,12.9852644 181.151783,12.9852644 C175.25483,12.9852644 172.236993,16.2139005 170.763435,18.3892179 L170.552635,18.3892179 L170.060996,13.7570635 L161.075487,13.7570635 C161.216927,16.7762599 161.357006,20.4251355 161.357006,24.7077704 L161.357006,48.0813823 Z M257.325291,48.0813823 L267.995158,48.0813823 L267.995158,30.6740832 C267.995158,29.8315642 268.065878,28.9883652 268.205958,28.2879661 C268.907717,24.98725 271.575354,22.2849333 275.505749,22.2849333 C276.699828,22.2849333 276.964348,22.2264533 278.383506,22.2672533 L278.383506,13.7230635 C277.612387,13.5816237 277.120747,13.5816237 276.137469,13.5816237 C272.838113,13.5816237 268.626878,15.0905419 266.8718,20.0749359 L266.59096,20.0749359 L266.240081,13.7570635 L257.045812,13.7570635 C257.185891,16.70554 257.325291,20.004216 257.325291,25.0579699 L257.325291,48.0813823 Z M230.463147,12.9364405 C235.274142,12.9364405 238.882217,14.8472382 240.933775,17.8188346 L241.075895,17.8188346 L241.075895,13.5994397 L251.829402,13.5994397 L251.829402,37.9828504 C251.829402,38.6054033 251.833023,39.2352153 251.839688,39.8632983 L251.851897,40.8030026 C251.897332,43.767511 252.00495,46.5916129 252.112961,48.312038 L242.986012,48.312038 L242.561693,43.5010438 L242.420253,43.5010438 C240.014416,47.6048389 236.052741,49.0906371 232.018986,49.0906371 C224.095635,49.0906371 216.242325,42.8645646 216.242325,30.4124195 C216.170925,19.7996722 222.184157,12.9364405 230.463147,12.9364405 Z M292.349329,3.93039528 L292.349329,13.7570635 L300,13.7570635 L300,21.6192141 L292.349329,21.6192141 L292.349329,34.0434791 C292.349329,38.1846742 293.331248,40.0791519 296.561244,40.0791519 C297.894723,40.0791519 298.947361,39.9390721 299.71916,39.7983122 L299.71916,39.7983122 L299.7892,47.8705826 C298.385002,48.4315819 295.858805,48.7838215 292.839609,48.7838215 C289.400853,48.7838215 286.523096,47.5897429 284.838738,45.834665 C282.873541,43.7994274 281.890262,40.5000714 281.890262,35.6571172 L281.890262,35.6571172 L281.890262,21.6192141 L281.864422,21.6192141 L281.864422,13.7570635 L281.890262,13.7570635 L281.890262,6.31651242 L292.349329,3.93039528 Z M234.566943,21.2147505 C229.543109,21.2147505 227.137951,25.4599854 227.137951,30.836739 C227.137951,37.0628115 229.967428,40.6001673 234.566943,40.6001673 C237.679979,40.6001673 240.155856,38.33645 240.863055,35.5062934 C241.005175,34.9405341 241.075895,34.3033748 241.075895,33.5961757 L241.075895,28.5023018 C241.075895,27.7944226 241.005175,27.1572634 240.863055,26.5207842 C240.155856,23.4077479 237.467819,21.2147505 234.566943,21.2147505 Z"/></g><g transform="translate(23.297102,0)"><mask fill="white" id="psMask"><use xlink:href="#psSB"/></mask><use fill="url(#psRG1)" mask="url(#psMask)" xlink:href="#psSB"/></g></g></svg>`;
+const PS_LOGO_URI = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(_PS_SVG);
+
+function setAllLogos() {
+  ['navLogoImg','csrLogoImg','adminLogoImg','printLogoImg'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.src = PS_LOGO_URI;
+  });
+}
+
+// ════════════════════════════════════
+//  MULTI-TENANT STORE SYSTEM
+// ════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+let STORE_ID = urlParams.get('store') || 'default';
+
+function getStoreConfig() {
+  const defaults = {
+    storeName: 'PriceSmart Optical',
+    storeAddress: '',
+    welcomeMessage: "While you wait, let us get to know your style a little — so we can make the most of your visit today.",
+    primaryColor: '#003087',
+    accentColor: '#CC0000',
+    csrPin: '1234',
+    adminPin: '9999',
+    storeId: STORE_ID
+  };
+  try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem('ps_config_' + STORE_ID) || '{}')); }
+  catch(e) { return defaults; }
+}
+
+function saveConfigData(cfg) {
+  localStorage.setItem('ps_config_' + STORE_ID, JSON.stringify(cfg));
+}
+
+function applyBranding(cfg) {
+  document.documentElement.style.setProperty('--brand-primary', cfg.primaryColor);
+  document.documentElement.style.setProperty('--brand-accent', cfg.accentColor);
+  // Update print page logo backing to match brand primary
+  const pw = document.querySelector('.print-logo-wrap');
+  if(pw) pw.style.background = cfg.primaryColor;
+}
+
+function getSessions() {
+  try { return JSON.parse(localStorage.getItem('ps_sessions_' + STORE_ID) || '[]'); } catch(e) { return []; }
+}
+function saveSessions(s) { localStorage.setItem('ps_sessions_' + STORE_ID, JSON.stringify(s)); }
+function addSession(session) { const s = getSessions(); s.push(session); saveSessions(s); }
+function updateSession(id, updates) {
+  const s = getSessions(); const idx = s.findIndex(x => x.id === id);
+  if (idx >= 0) { Object.assign(s[idx], updates); saveSessions(s); }
+}
+
+function seedDemoData() {
+  if (getSessions().length > 0) return;
+  const demo = [
+    { id:'demo-001', timestamp:Date.now()-7200000, isNewPatient:false,
+      contact:{name:'Maria T.', phone:'868-555-0101', email:'mariat@email.com'},
+      answers:{q1:'a',q2:'b',q3:'d',q4:'a',q5:'b',q6:'c',q7:'a',q8:'c',q9:'b',q10:'c',q11:'c',q12:'a'},
+      score:{purchaseReadiness:78,urgency:'high',budgetTier:'premium',frameStyle:'Modern & Bold',lensFlags:['blue-light','premium coatings'],colorPref:'Metallics',faceShape:'Oval',usageEnv:'Office/screens'},
+      csrAssessment:{csrName:'James',outcome:'purchased',purchaseAmount:399,invoiceNumber:'INV-00214',purchaseType:'Frames + lenses + upgrades (blue light, AR, etc.)',skills:{rapport:4,discovery:4,presentation:5,lensUpsell:4,close:4},notes:'Loved the titanium frames. Upsold AR + blue light coating.'}
+    },
+    { id:'demo-002', timestamp:Date.now()-5400000, isNewPatient:true,
+      contact:{name:'Derek P.', phone:'868-555-0202', email:''},
+      answers:{q1:'b',q2:'a',q3:'b',q4:'b',q5:'a',q6:'d',q7:'b',q8:'b',q9:'c',q10:'a',q11:'b',q12:'a'},
+      score:{purchaseReadiness:62,urgency:'high',budgetTier:'mid',frameStyle:'Classic & Polished',lensFlags:['progressive check','backup pair opp.'],colorPref:'Classic blacks',faceShape:'Square',usageEnv:'Office/screens'},
+      csrAssessment:{csrName:'Sandra',outcome:'no-sale',noSaleReason:'Price / budget concern',skills:{rapport:3,discovery:3,presentation:3,lensUpsell:2,close:2},notes:'New patient from exam. Wanted to check prices online first.'}
+    },
+    { id:'demo-003', timestamp:Date.now()-3600000, isNewPatient:false,
+      contact:{name:'Patricia A.', phone:'868-555-0303', email:''},
+      answers:{q1:'a',q2:'c',q3:'c',q4:'b',q5:'a',q6:'b',q7:'c',q8:'b',q9:'a',q10:'b',q11:'a',q12:'c'},
+      score:{purchaseReadiness:55,urgency:'medium',budgetTier:'mid',frameStyle:'Relaxed & Practical',lensFlags:['blue-light'],colorPref:'Warm browns',faceShape:'Round',usageEnv:'Everywhere'},
+      csrAssessment:null
+    },
+    { id:'demo-004', timestamp:Date.now()-1800000, isNewPatient:true,
+      contact:{name:'', phone:'', email:''},
+      answers:{q1:'d',q2:'d',q3:'d',q4:'a',q5:'b',q6:'d',q7:'d',q8:'d',q9:'d',q10:'d',q11:'b',q12:'b'},
+      score:{purchaseReadiness:90,urgency:'high',budgetTier:'luxury',frameStyle:'Creative & Unique',lensFlags:['blue-light','transitions','progressive check'],colorPref:'Bold & bright',faceShape:'Heart/Diamond',usageEnv:'Outdoors & active'},
+      csrAssessment:null
+    }
+  ];
+  saveSessions(demo);
+}
+
+// ════════════════════════════════════
+//  QUESTIONS (12 total)
+// ════════════════════════════════════
+const QUESTIONS = [
+  { id:'q1',emoji:'👓',q:"How do you typically wear your glasses?",sub:"Choose the option that fits best",
+    opts:[{e:'☀️',t:"Every day, all day — they're part of me",v:'a'},{e:'💻',t:"Mostly for reading or screens",v:'b'},{e:'🔄',t:"I switch between glasses and contacts",v:'c'},{e:'🚗',t:"Mainly for driving or specific tasks",v:'d'}]},
+  { id:'q2',emoji:'✨',q:"What word best describes your personal style?",sub:"Go with your gut — no wrong answer",
+    opts:[{e:'🎩',t:"Classic & Polished",v:'a'},{e:'🔷',t:"Modern & Bold",v:'b'},{e:'🌿',t:"Relaxed & Practical",v:'c'},{e:'🎨',t:"Creative & Unique",v:'d'}]},
+  { id:'q3',emoji:'🖥️',q:"On a typical weekday, how many hours are you on screens?",sub:"Phone, computer, TV — all count!",
+    opts:[{e:'😎',t:"Less than 2 hours",v:'a'},{e:'📱',t:"About 2–4 hours",v:'b'},{e:'💻',t:"About 4–8 hours",v:'c'},{e:'🔥',t:"More than 8 hours",v:'d'}]},
+  { id:'q4',emoji:'🛍️',q:"When buying something you use every day, you tend to:",sub:"Think about how you usually decide",
+    opts:[{e:'💎',t:"Invest in quality — you get what you pay for",v:'a'},{e:'⚖️',t:"Find the sweet spot between quality and value",v:'b'},{e:'🔍',t:"Look for the best deal possible",v:'c'},{e:'🤝',t:"Ask someone I trust for a recommendation",v:'d'}]},
+  { id:'q5',emoji:'🚗',q:"If your glasses were a vehicle, they'd be:",sub:"First instinct is usually the best!",
+    opts:[{e:'🚙',t:"A reliable SUV — practical, does it all",v:'a'},{e:'🏎️',t:"A sports car — turns heads effortlessly",v:'b'},{e:'🚘',t:"A classic car — timeless & full of character",v:'c'},{e:'🚜',t:"A rugged 4×4 — built to handle anything",v:'d'}]},
+  { id:'q6',emoji:'⏰',q:"How long ago did you get your current glasses?",sub:"Be honest — no judgment here!",
+    opts:[{e:'✨',t:"Less than a year ago",v:'a'},{e:'📅',t:"About 1–2 years ago",v:'b'},{e:'⏳',t:"About 2–3 years ago",v:'c'},{e:'😬',t:"More than 3 years ago!",v:'d'}]},
+  { id:'q7',emoji:'🌟',q:"In your perfect glasses, you'd feel:",sub:"What matters most to you",
+    opts:[{e:'💼',t:"Confident and put-together",v:'a'},{e:'😌',t:"Comfortable and at ease",v:'b'},{e:'🏃',t:"Active and ready for anything",v:'c'},{e:'🌟',t:"Expressive and noticed",v:'d'}]},
+  { id:'q8',emoji:'💳',q:"If you treated yourself to something today, you'd spend:",sub:"For something you'd wear every single day",
+    opts:[{e:'💚',t:"Up to $100",v:'a'},{e:'💛',t:"$100 – $250",v:'b'},{e:'🧡',t:"$250 – $500",v:'c'},{e:'❤️',t:"Whatever it takes to get it right",v:'d'}]},
+  // Frame preference questions
+  { id:'q9',emoji:'🔵',q:"Which best describes the shape of your face?",sub:"This helps us suggest the most flattering frames",
+    opts:[{e:'⭕',t:"Round — soft, full features",v:'a'},{e:'🥚',t:"Oval — balanced & proportional",v:'b'},{e:'◼️',t:"Square — strong, defined jawline",v:'c'},{e:'🔺',t:"Heart / Diamond — wider at top",v:'d'}]},
+  { id:'q10',emoji:'🎨',q:"Which colors do you tend to gravitate toward?",sub:"Think about your wardrobe & accessories",
+    opts:[{e:'🖤',t:"Classic blacks & dark tones",v:'a'},{e:'🍂',t:"Warm browns & tortoiseshell",v:'b'},{e:'✨',t:"Metallics — silver, gold, rose gold",v:'c'},{e:'🌈',t:"Bold & bright — I like to stand out!",v:'d'}]},
+  { id:'q11',emoji:'🪞',q:"How do you feel about your current frame style?",sub:"Honest answer = better recommendations!",
+    opts:[{e:'💕',t:"Love it — want something very similar",v:'a'},{e:'🔄',t:"Ready for something completely different",v:'b'},{e:'✨',t:"Similar, but with a few upgrades",v:'c'},{e:'🤷',t:"Open to whatever looks best on me",v:'d'}]},
+  { id:'q12',emoji:'📍',q:"Where do you wear your glasses most?",sub:"Choose your primary environment",
+    opts:[{e:'💼',t:"Office / indoors — lots of screen time",v:'a'},{e:'🌿',t:"Outdoors & active lifestyle",v:'b'},{e:'🔄',t:"Everywhere — need them for everything",v:'c'},{e:'🎭',t:"Mainly formal / professional settings",v:'d'}]}
+];
+
+// ════════════════════════════════════
+//  SCORING ENGINE
+// ════════════════════════════════════
+function scoreAnswers(ans) {
+  const pr = (({a:25,b:18,c:8,d:15}[ans.q4]||0)) + (({a:5,b:15,c:25,d:35}[ans.q6]||0)) + (({a:8,b:18,c:28,d:40}[ans.q8]||0));
+  const purchaseReadiness = Math.min(100, Math.round(pr));
+  const urgency = {a:'low',b:'low',c:'medium',d:'high'}[ans.q6]||'medium';
+  const budgetTier = {a:'value',b:'mid',c:'premium',d:'luxury'}[ans.q8]||'mid';
+  const styleMap = {a:'Classic & Polished',b:'Modern & Bold',c:'Relaxed & Practical',d:'Creative & Unique'};
+  const frameStyle = styleMap[ans.q2]||'Classic & Polished';
+  const faceShapeMap = {a:'Round',b:'Oval',c:'Square',d:'Heart/Diamond'};
+  const faceShape = faceShapeMap[ans.q9]||'Oval';
+  const colorMap = {a:'Classic blacks & darks',b:'Warm browns & tortoise',c:'Metallics',d:'Bold & bright'};
+  const colorPref = colorMap[ans.q10]||'Classic blacks & darks';
+  const usageMap = {a:'Office/screens',b:'Outdoors & active',c:'Everywhere',d:'Formal/professional'};
+  const usageEnv = usageMap[ans.q12]||'Everywhere';
+  const lensFlags = [];
+  if(['c','d'].includes(ans.q3)) lensFlags.push('blue-light');
+  if(ans.q1==='c') lensFlags.push('backup pair opp.');
+  if(['c','d'].includes(ans.q6)) lensFlags.push('progressive check');
+  if(ans.q1==='a') lensFlags.push('premium coatings');
+  if(ans.q3==='d') lensFlags.push('transitions');
+  return {purchaseReadiness,urgency,budgetTier,frameStyle,faceShape,colorPref,usageEnv,lensFlags};
+}
+
+function frameReco(style, faceShape, colorPref) {
+  const shapeAdvice = {
+    'Round':'Angular rectangular or square frames add definition.',
+    'Oval':'Most frame shapes work well — lucky you!',
+    'Square':'Round or oval frames soften strong features.',
+    'Heart/Diamond':'Bottom-heavy or oval frames balance wider forehead.'
+  };
+  const colorAdvice = {
+    'Classic blacks & darks':'Black, gunmetal, or dark tortoise frames.',
+    'Warm browns & tortoise':'Amber, honey, warm tortoiseshell, or copper tones.',
+    'Metallics':'Silver, gold, rose gold, or titanium frames.',
+    'Bold & bright':'Statement colors, patterns, or two-tone acetate.'
+  };
+  const styleReco = {
+    'Classic & Polished':'Classic metal or acetate in timeless shapes.',
+    'Modern & Bold':'Contemporary geometric acetate, designer brands.',
+    'Relaxed & Practical':'Lightweight titanium, memory flex, or rimless.',
+    'Creative & Unique':'Boutique or designer frames in distinctive shapes.'
+  };
+  return `${styleReco[style]||'Quality frames'} ${shapeAdvice[faceShape]||''} Color direction: ${colorAdvice[colorPref]||'neutral tones'}.`;
+}
+
+function lensReco(flags, budget) {
+  const items = [];
+  if(flags.includes('blue-light')) items.push('Blue-light filter');
+  if(flags.includes('transitions')) items.push('Transitions/photochromic');
+  if(flags.includes('progressive check')) items.push('Progressives (if 40+)');
+  if(flags.includes('premium coatings')) items.push('Anti-reflective + scratch coating');
+  if(flags.includes('backup pair opp.')) items.push('Backup pair (contact wearer)');
+  if(['premium','luxury'].includes(budget)) items.push('Premium lens brand upgrade');
+  return items.length ? items : ['Standard single vision lenses'];
+}
+
+// ════════════════════════════════════
+//  PATIENT CARD UI
+// ════════════════════════════════════
+let currentCard = -1;
+let isNewPatient = false;
+let currentAnswers = {};
+let currentSessionId = null;
+let patientContact = {name:'',phone:'',email:''};
+
+function generateId() { return 'ps-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6); }
+
+function renderProgressDots(idx) {
+  const total = QUESTIONS.length;
+  const el = document.getElementById('progressDots');
+  const label = document.getElementById('progressLabel');
+  el.innerHTML = '';
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div');
+    d.className='pdot'+(i<idx?' done':i===idx?' active':'');
+    el.appendChild(d);
+  }
+  label.textContent = idx >= 0 && idx < total ? `Question ${idx+1} of ${total}` : '';
+}
+
+function showCard(idx) {
+  const stage = document.getElementById('cardStage');
+  const existing = stage.querySelector('.intake-card');
+  if(existing){ existing.style.animation='cardOut 0.28s ease forwards'; setTimeout(()=>renderCardContent(idx),280); }
+  else renderCardContent(idx);
+}
+
+function renderCardContent(idx) {
+  currentCard = idx;
+  const stage = document.getElementById('cardStage');
+  renderProgressDots(idx);
+  const cfg = getStoreConfig();
+
+  if(idx === -1) {
+    // WELCOME
+    stage.innerHTML = `
+      <div class="intake-card welcome-card">
+        <span class="welcome-icon">👋</span>
+        <div class="welcome-title">Welcome to ${cfg.storeName}!</div>
+        <p class="welcome-sub">${cfg.welcomeMessage}</p>
+        <div class="new-patient-toggle" onclick="toggleNewPatient(this)">
+          <div class="toggle-box" id="newPatientBox"></div>
+          <span>This is my first visit here</span>
+        </div>
+        <button class="start-btn" onclick="startIntake()">Let's Get Started →</button>
+      </div>`;
+    document.getElementById('progressLabel').textContent = '';
+  } else if(idx === 0 && currentCard === 0) {
+    // CONTACT INFO (first card)
+    stage.innerHTML = `
+      <div class="intake-card contact-card">
+        <span class="card-emoji">📋</span>
+        <h2>Quick intro!</h2>
+        <p>A CSR can help you fill this in if you prefer.</p>
+        <div class="field-row">
+          <div class="form-field">
+            <label class="form-label-sm">First Name *</label>
+            <input type="text" class="form-input-sm" id="ptName" value="${patientContact.name}" placeholder="Your name">
+          </div>
+          <div class="form-field">
+            <label class="form-label-sm">Phone *</label>
+            <input type="tel" class="form-input-sm" id="ptPhone" value="${patientContact.phone}" placeholder="Phone number">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label-sm">Email <span style="font-weight:400;color:var(--gray-400)">(optional)</span></label>
+          <input type="email" class="form-input-sm" id="ptEmail" value="${patientContact.email}" placeholder="Email address">
+        </div>
+        <p class="opt-note">Your info stays private and is only seen by our optical team.</p>
+        <div class="next-row">
+          <button class="back-btn" onclick="goBack()">← Back</button>
+          <span class="q-counter">Contact Info</span>
+          <button class="next-btn ready" id="nextBtn" onclick="saveContactAndNext()">Next →</button>
+        </div>
+      </div>`;
+  } else if(idx >= QUESTIONS.length + 1) {
+    showThankYou();
+  } else {
+    // QUESTION CARD (questions start at idx 1, map to QUESTIONS[idx-1])
+    const q = QUESTIONS[idx - 1];
+    if(!q){ showThankYou(); return; }
+    const selectedVal = currentAnswers[q.id];
+    stage.innerHTML = `
+      <div class="intake-card">
+        <span class="card-emoji">${q.emoji}</span>
+        <div class="card-question">${q.q}</div>
+        <div class="card-subtitle">${q.sub}</div>
+        <div class="options-grid">
+          ${q.opts.map(o=>`
+            <button class="opt-btn ${selectedVal===o.v?'selected':''}" onclick="selectOption('${q.id}','${o.v}',this)">
+              <span class="opt-emoji">${o.e}</span>
+              <span class="opt-text">${o.t}</span>
+            </button>`).join('')}
+        </div>
+        <div class="next-row">
+          <button class="back-btn" onclick="goBack()">← Back</button>
+          <span class="q-counter">${idx} of ${QUESTIONS.length}</span>
+          <button class="next-btn ${selectedVal?'ready':''}" id="nextBtn" onclick="nextCard()">
+            ${idx===QUESTIONS.length?'Finish ✓':'Next →'}
+          </button>
+        </div>
+      </div>`;
+  }
+}
+
+function toggleNewPatient() {
+  isNewPatient = !isNewPatient;
+  document.getElementById('newPatientBox').className='toggle-box'+(isNewPatient?' checked':'');
+}
+
+function startIntake() {
+  currentSessionId = generateId();
+  currentAnswers = {}; patientContact = {name:'',phone:'',email:''};
+  showCard(0);
+}
+
+function saveContactAndNext() {
+  patientContact.name = document.getElementById('ptName')?.value.trim()||'';
+  patientContact.phone = document.getElementById('ptPhone')?.value.trim()||'';
+  patientContact.email = document.getElementById('ptEmail')?.value.trim()||'';
+  showCard(1);
+}
+
+function selectOption(qId, val, btn) {
+  currentAnswers[qId] = val;
+  btn.closest('.options-grid').querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const nb = document.getElementById('nextBtn');
+  if(nb) nb.classList.add('ready');
+  setTimeout(()=>nextCard(), 380);
+}
+
+function nextCard() {
+  if(currentCard > 0) {
+    const q = QUESTIONS[currentCard - 1];
+    if(q && !currentAnswers[q.id]) return;
+  }
+  showCard(currentCard + 1);
+}
+
+function goBack() {
+  if(currentCard <= 0) { showCard(-1); return; }
+  showCard(currentCard - 1);
+}
+
+function showThankYou() {
+  const score = scoreAnswers(currentAnswers);
+  const session = {
+    id: currentSessionId || generateId(),
+    timestamp: Date.now(), isNewPatient,
+    contact: {...patientContact},
+    answers: {...currentAnswers},
+    score, csrAssessment: null
+  };
+  addSession(session);
+  const cfg = getStoreConfig();
+  const stage = document.getElementById('cardStage');
+  stage.innerHTML = `
+    <div class="intake-card thankyou-card">
+      <span class="ty-icon">🎉</span>
+      <div class="ty-title">Thank you${patientContact.name?' '+patientContact.name.split(' ')[0]:''}!</div>
+      <p class="ty-sub">Your optician will be right with you. We're looking forward to helping you find your perfect pair today.</p>
+      <div class="ty-chips">
+        <div class="ty-chip">🎨 ${score.frameStyle}</div>
+        <div class="ty-chip">✨ ${score.colorPref}</div>
+        ${score.lensFlags.slice(0,2).map(f=>`<div class="ty-chip">${f}</div>`).join('')}
+        ${isNewPatient?'<div class="ty-chip red">New Patient</div>':''}
+      </div>
+      <p style="font-size:12px;color:var(--gray-400);">Please hand the tablet back to the front desk — they'll call you shortly!</p>
+      <button class="reset-btn" onclick="resetIntake()">Start a New Form</button>
+    </div>`;
+  document.getElementById('progressDots').innerHTML = '';
+  document.getElementById('progressLabel').textContent = '';
+}
+
+function resetIntake() {
+  currentCard=-1;isNewPatient=false;currentAnswers={};currentSessionId=null;patientContact={name:'',phone:'',email:''};
+  showCard(-1);
+}
+
+// ════════════════════════════════════
+//  FULLSCREEN
+// ════════════════════════════════════
+function toggleFullscreen() {
+  if(!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.();
+  } else {
+    document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+  }
+}
+
+// ════════════════════════════════════
+//  MODE SWITCHING & PIN
+// ════════════════════════════════════
+let pendingMode = null, pinBuffer = '';
+
+function requestMode(mode) {
+  if(mode==='patient'){ switchView('patient'); return; }
+  const cfg = getStoreConfig();
+  pendingMode = mode;
+  pinBuffer = '';
+  document.getElementById('pinTitle').textContent = mode==='csr'?'📋 CSR Mode':'📊 Admin Dashboard';
+  document.getElementById('pinSub').textContent = 'Enter your 4-digit staff PIN';
+  document.getElementById('pinHint').textContent = mode==='csr'?`Hint: ${cfg.csrPin}`:`Hint: ${cfg.adminPin}`;
+  updatePinDots();
+  document.getElementById('pinOverlay').classList.remove('hidden');
+}
+
+function pinPress(d) {
+  if(pinBuffer.length>=4) return;
+  pinBuffer += d; updatePinDots();
+  if(pinBuffer.length===4) setTimeout(checkPin,150);
+}
+function pinBack() { pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots(error) {
+  document.querySelectorAll('.pin-dot').forEach((d,i)=>{
+    d.className='pin-dot'+(error?' error':i<pinBuffer.length?' filled':'');
+  });
+}
+function checkPin() {
+  const cfg = getStoreConfig();
+  const correct = pendingMode==='csr' ? cfg.csrPin : cfg.adminPin;
+  if(pinBuffer===correct){ document.getElementById('pinOverlay').classList.add('hidden'); switchView(pendingMode); }
+  else { updatePinDots(true); setTimeout(()=>{pinBuffer='';updatePinDots();},800); }
+}
+
+function switchView(mode) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(mode+'-view').classList.add('active');
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mode'+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add('active');
+  if(mode==='csr') refreshCSRView();
+  if(mode==='admin') refreshAdminView();
+}
+
+// ════════════════════════════════════
+//  CSR VIEW
+// ════════════════════════════════════
+const CSR_SKILLS = [
+  {id:'rapport',label:'Built rapport quickly'},
+  {id:'discovery',label:'Discovered their needs'},
+  {id:'presentation',label:'Presented frames effectively'},
+  {id:'lensUpsell',label:'Discussed lens options'},
+  {id:'close',label:'Asked for the sale'}
+];
+let selectedPatientId = null, selectedOutcome = null;
+
+function refreshCSRView() {
+  const sr = document.getElementById('skillRows');
+  sr.innerHTML = CSR_SKILLS.map(s=>`
+    <div class="skill-row">
+      <span class="skill-label">${s.label}</span>
+      <div class="skill-stars" id="stars-${s.id}">
+        ${[1,2,3,4,5].map(n=>`<div class="star" onclick="rateStar('${s.id}',${n})">${n}</div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const sessions = getSessions();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todaySessions = sessions.filter(s=>new Date(s.timestamp)>=today);
+  const list = document.getElementById('csrPatientList');
+  if(!todaySessions.length){
+    list.innerHTML=`<div class="empty-state"><div class="es-icon">🕐</div>No patients yet today.</div>`;
+    return;
+  }
+  list.innerHTML = todaySessions.sort((a,b)=>b.timestamp-a.timestamp).map(s=>{
+    const pr=s.score?.purchaseReadiness||0;
+    const prCls=pr>=70?'pr-high':pr>=45?'pr-mid':'pr-low';
+    const prLbl=pr>=70?'🔥 High':pr>=45?'⚡ Medium':'❄️ Low';
+    const t=new Date(s.timestamp);
+    const tStr=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const displayName = s.contact?.name || (s.isNewPatient?'🆕 New Patient':'👤 Patient');
+    const outcome=s.csrAssessment?.outcome;
+    const ob=outcome==='purchased'?'✅ Sold':outcome==='no-sale'?'❌ No Sale':outcome==='followup'?'🔄 Follow-up':'';
+    return `<div class="patient-row${selectedPatientId===s.id?' selected':''}" onclick="selectCSRPatient('${s.id}')">
+      <div class="patient-row-info">
+        <span class="patient-row-name">${displayName}</span>
+        <span class="patient-row-meta">${tStr} · ${s.score?.frameStyle||''} · ${s.score?.budgetTier||''}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        ${ob?`<span style="font-size:10px;font-weight:600">${ob}</span>`:''}
+        <span class="pr-score ${prCls}">${prLbl}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCSRPatient(id) {
+  selectedPatientId = id;
+  const s = getSessions().find(x=>x.id===id);
+  if(!s) return;
+  refreshCSRView();
+  // Show contact edit
+  document.getElementById('contactEditSection').style.display='block';
+  document.getElementById('csrEditName').value = s.contact?.name||'';
+  document.getElementById('csrEditPhone').value = s.contact?.phone||'';
+  document.getElementById('csrEditEmail').value = s.contact?.email||'';
+  // Pre-fill if existing assessment
+  if(s.csrAssessment) {
+    selectOutcome(document.querySelector(`[data-val="${s.csrAssessment.outcome}"]`), s.csrAssessment.outcome,
+      s.csrAssessment.outcome==='purchased'?'selected-green':s.csrAssessment.outcome==='no-sale'?'selected-red':'selected-yellow');
+    if(s.csrAssessment.purchaseAmount) document.getElementById('purchaseAmount').value=s.csrAssessment.purchaseAmount;
+    if(s.csrAssessment.invoiceNumber) document.getElementById('invoiceNumber').value=s.csrAssessment.invoiceNumber;
+    if(s.csrAssessment.purchaseType) document.getElementById('purchaseType').value=s.csrAssessment.purchaseType;
+    if(s.csrAssessment.noSaleReason) document.getElementById('noSaleReason').value=s.csrAssessment.noSaleReason;
+    if(s.csrAssessment.followupNote) document.getElementById('followupNote').value=s.csrAssessment.followupNote;
+    if(s.csrAssessment.notes) document.getElementById('csrNotes').value=s.csrAssessment.notes;
+    if(s.csrAssessment.csrName) document.getElementById('csrName').value=s.csrAssessment.csrName;
+    if(s.csrAssessment.skills) {
+      CSR_SKILLS.forEach(sk=>{ if(s.csrAssessment.skills[sk.id]) rateStar(sk.id, s.csrAssessment.skills[sk.id]); });
+    }
+  }
+}
+
+function saveContactEdit() {
+  if(!selectedPatientId) return;
+  const contact = {
+    name: document.getElementById('csrEditName').value.trim(),
+    phone: document.getElementById('csrEditPhone').value.trim(),
+    email: document.getElementById('csrEditEmail').value.trim()
+  };
+  updateSession(selectedPatientId, {contact});
+  refreshCSRView();
+}
+
+function selectOutcome(el, val, cls) {
+  if(!el) return;
+  selectedOutcome = val;
+  document.querySelectorAll('.outcome-btn').forEach(b=>b.className='outcome-btn');
+  el.classList.add(cls);
+  document.getElementById('purchaseFields').style.display=val==='purchased'?'block':'none';
+  document.getElementById('noSaleFields').style.display=val==='no-sale'?'block':'none';
+  document.getElementById('followupFields').style.display=val==='followup'?'block':'none';
+}
+
+function rateStar(skillId, rating) {
+  document.querySelectorAll(`#stars-${skillId} .star`).forEach((s,i)=>{
+    s.className='star'+(i<rating?' active':'');
+  });
+}
+
+function getSkillRatings() {
+  const r={};
+  CSR_SKILLS.forEach(s=>{
+    let v=0;
+    document.querySelectorAll(`#stars-${s.id} .star`).forEach((el,i)=>{ if(el.classList.contains('active')) v=i+1; });
+    r[s.id]=v;
+  });
+  return r;
+}
+
+function submitCSRAssessment() {
+  if(!selectedPatientId){alert('Please select a patient first.');return;}
+  if(!selectedOutcome){alert('Please select the transaction outcome.');return;}
+  const assessment = {
+    csrName: document.getElementById('csrName').value.trim()||'Staff',
+    outcome: selectedOutcome,
+    purchaseAmount: selectedOutcome==='purchased'?parseFloat(document.getElementById('purchaseAmount').value)||0:0,
+    invoiceNumber: selectedOutcome==='purchased'?document.getElementById('invoiceNumber').value.trim():'',
+    purchaseType: selectedOutcome==='purchased'?document.getElementById('purchaseType').value:'',
+    noSaleReason: selectedOutcome==='no-sale'?document.getElementById('noSaleReason').value:'',
+    followupNote: selectedOutcome==='followup'?document.getElementById('followupNote').value:'',
+    notes: document.getElementById('csrNotes').value,
+    skills: getSkillRatings()
+  };
+  updateSession(selectedPatientId, {csrAssessment: assessment});
+  const t = document.getElementById('csrSuccess');
+  t.style.display='block'; setTimeout(()=>t.style.display='none',3000);
+  selectedPatientId=null; selectedOutcome=null;
+  document.getElementById('contactEditSection').style.display='none';
+  refreshCSRView();
+}
+
+// ════════════════════════════════════
+//  ADMIN DASHBOARD
+// ════════════════════════════════════
+function adminTab(btn, panel) {
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+panel).classList.add('active');
+  if(panel==='setup') loadStoreSetup();
+}
+
+function refreshAdminView() {
+  const sessions = getSessions();
+  const today=new Date();today.setHours(0,0,0,0);
+  const ts = sessions.filter(s=>new Date(s.timestamp)>=today);
+  const assessed = ts.filter(s=>s.csrAssessment);
+  const sold = assessed.filter(s=>s.csrAssessment?.outcome==='purchased');
+  const revenue = sold.reduce((sum,s)=>sum+(s.csrAssessment.purchaseAmount||0),0);
+  const convRate = assessed.length?Math.round(sold.length/assessed.length*100):0;
+  const avgPR = ts.length?Math.round(ts.reduce((s,x)=>s+(x.score?.purchaseReadiness||0),0)/ts.length):0;
+  const cfg = getStoreConfig();
+
+  document.getElementById('adminDateLine').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+cfg.storeName;
+
+  document.getElementById('statsGrid').innerHTML=[
+    {val:ts.length,label:'Patients Today'},
+    {val:convRate+'%',label:'Conversion Rate'},
+    {val:'$'+revenue.toLocaleString(),label:'Revenue Today'},
+    {val:avgPR,label:'Avg Readiness Score'}
+  ].map(s=>`<div class="stat-card"><div class="stat-value">${s.val}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+  // Top opportunities
+  const opps = ts.filter(s=>!s.csrAssessment&&(s.score?.purchaseReadiness||0)>=60).sort((a,b)=>(b.score?.purchaseReadiness||0)-(a.score?.purchaseReadiness||0));
+  const toDiv = document.getElementById('topOpportunities');
+  toDiv.innerHTML = opps.length ? opps.map(s=>{
+    const reco=frameReco(s.score?.frameStyle,s.score?.faceShape,s.score?.colorPref);
+    const lens=lensReco(s.score?.lensFlags||[],s.score?.budgetTier);
+    const nm=s.contact?.name||'Patient';
+    return `<div class="ppc-reco" style="margin-bottom:9px">
+      <strong>🔥 ${nm} · PR ${s.score?.purchaseReadiness}% · ${s.score?.budgetTier} budget</strong>
+      ${reco} Lens: ${lens.slice(0,2).join(', ')}.
+    </div>`;
+  }).join('') : `<div class="empty-state"><div class="es-icon">✅</div>All high-readiness patients assessed!</div>`;
+
+  // Coaching tips
+  const noSaleCount=assessed.filter(s=>s.csrAssessment?.outcome==='no-sale').length;
+  const tips=[];
+  if(noSaleCount>sold.length) tips.push({icon:'💡',title:'Objection Handling Needed',body:'More no-sales than sales today. Focus on value-building before quoting price. Tie features to their lifestyle answers.'});
+  if(ts.filter(s=>(s.score?.lensFlags||[]).includes('blue-light')).length>1) tips.push({icon:'🖥️',title:'Blue Light Opportunity',body:'Multiple high-screen-time patients today. Lead with the blue light conversation — it\'s a quick win and adds ~$60–80.'});
+  if(ts.filter(s=>s.score?.urgency==='high').length>1) tips.push({icon:'⏰',title:'High Urgency Patients',body:'Several patients are 2+ years overdue. Emphasize how much vision changes — creates natural urgency to buy today.'});
+  if(!tips.length) tips.push({icon:'🏆',title:'Strong Start Today!',body:'Keep focusing on lens upsells — they add $80–$150 to average ticket value and address real needs patients already revealed.'});
+  document.getElementById('insightTips').innerHTML=tips.map(t=>`
+    <div class="tip-card"><span class="tip-icon">${t.icon}</span><div class="tip-text"><strong>${t.title}</strong>${t.body}</div></div>`).join('');
+
+  // Patient profiles
+  const pp=document.getElementById('patientProfiles');
+  pp.innerHTML=ts.length?ts.sort((a,b)=>b.timestamp-a.timestamp).map(s=>{
+    const pr=s.score?.purchaseReadiness||0;
+    const prCls=pr>=70?'pr-high':pr>=45?'pr-mid':'pr-low';
+    const reco=frameReco(s.score?.frameStyle,s.score?.faceShape,s.score?.colorPref);
+    const lens=lensReco(s.score?.lensFlags||[],s.score?.budgetTier);
+    const outcome=s.csrAssessment?.outcome;
+    const op=outcome==='purchased'?`<span class="outcome-pill op-sold">✅ Sold $${s.csrAssessment.purchaseAmount}${s.csrAssessment.invoiceNumber?' · '+s.csrAssessment.invoiceNumber:''}</span>`:
+      outcome==='no-sale'?`<span class="outcome-pill op-nosale">❌ No Sale</span>`:
+      outcome==='followup'?`<span class="outcome-pill op-pending">🔄 Follow-up</span>`:
+      `<span class="outcome-pill op-pending">⏳ Pending</span>`;
+    const nm=s.contact?.name||(s.isNewPatient?'New Patient':'Anonymous');
+    const phone=s.contact?.phone?` · ${s.contact.phone}`:'';
+    return `<div class="patient-profile-card">
+      <div class="ppc-top">
+        <div>
+          <div class="ppc-name">${nm}${s.isNewPatient?' 🆕':''}</div>
+          <div style="font-size:11px;color:var(--gray-400)">${phone} · ${new Date(s.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <span class="pr-score ${prCls}">PR ${pr}%</span>
+      </div>
+      <div class="ppc-tags">
+        <span class="tag">🎨 ${s.score?.frameStyle}</span>
+        <span class="tag">🔵 ${s.score?.faceShape}</span>
+        <span class="tag budget">💰 ${s.score?.budgetTier}</span>
+        ${s.score?.urgency==='high'?'<span class="tag urgent">⏰ Urgent</span>':''}
+        ${(s.score?.lensFlags||[]).map(f=>`<span class="tag lens">👓 ${f}</span>`).join('')}
+      </div>
+      <div class="ppc-reco"><strong>Recommendation:</strong> ${reco}<br><strong>Lenses:</strong> ${lens.join(', ')}${s.csrAssessment?.notes?`<br><strong>CSR:</strong> ${s.csrAssessment.notes}`:''}</div>
+      <div class="ppc-outcome">${op}</div>
+    </div>`;
+  }).join('') : `<div class="empty-state"><div class="es-icon">👥</div>No patients yet today.</div>`;
+
+  // CSR scoreboard
+  const csrMap={};
+  assessed.forEach(s=>{
+    const name=s.csrAssessment?.csrName||'Unknown';
+    if(!csrMap[name]) csrMap[name]={sessions:[],sold:0,revenue:0};
+    csrMap[name].sessions.push(s);
+    if(s.csrAssessment?.outcome==='purchased'){csrMap[name].sold++;csrMap[name].revenue+=s.csrAssessment.purchaseAmount||0;}
+  });
+  const csrBoard=document.getElementById('csrScoreboard');
+  csrBoard.innerHTML=Object.keys(csrMap).length?Object.entries(csrMap).sort((a,b)=>b[1].sold-a[1].sold).map(([name,data])=>{
+    const conv=data.sessions.length?Math.round(data.sold/data.sessions.length*100):0;
+    const sc=conv>=60?'score-a':conv>=35?'score-b':'score-c';
+    const init=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="csr-perf-row">
+      <div class="csr-avatar">${init}</div>
+      <div><div class="csr-name">${name}</div><div class="csr-meta">${data.sessions.length} interactions · $${data.revenue.toLocaleString()} revenue</div></div>
+      <div class="csr-score-badge ${sc}">${conv}%</div>
+    </div>`;
+  }).join(''):`<div class="empty-state"><div class="es-icon">📋</div>No assessments yet.</div>`;
+
+  const skillTotals={};
+  CSR_SKILLS.forEach(s=>skillTotals[s.id]={label:s.label,total:0,count:0});
+  assessed.forEach(s=>{
+    if(!s.csrAssessment?.skills) return;
+    CSR_SKILLS.forEach(sk=>{skillTotals[sk.id].total+=s.csrAssessment.skills[sk.id]||0;skillTotals[sk.id].count++;});
+  });
+  document.getElementById('csrSkillBreakdown').innerHTML=CSR_SKILLS.map(sk=>{
+    const avg=skillTotals[sk.id].count?(skillTotals[sk.id].total/skillTotals[sk.id].count).toFixed(1):'–';
+    const pct=skillTotals[sk.id].count?Math.round(skillTotals[sk.id].total/skillTotals[sk.id].count/5*100):0;
+    const col=pct>=70?'#10B981':pct>=45?'#F59E0B':'#EF4444';
+    return `<div class="focus-bar-wrap">
+      <div class="focus-bar-label"><span>${sk.label}</span><span>${avg}/5</span></div>
+      <div class="focus-bar-track"><div class="focus-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Focus areas
+  const total=ts.length||1;
+  [
+    {label:'Blue Light Lens Upsell',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('blue-light')).length/total*100),col:'#7C3AED'},
+    {label:'Progressive Lens Check',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('progressive check')).length/total*100),col:'#0EA5E9'},
+    {label:'Premium/Luxury Budget',pct:Math.round(ts.filter(s=>['premium','luxury'].includes(s.score?.budgetTier)).length/total*100),col:'#10B981'},
+    {label:'High Urgency (2+ yrs overdue)',pct:Math.round(ts.filter(s=>s.score?.urgency==='high').length/total*100),col:'#F59E0B'},
+    {label:'Backup Pair Opportunity',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('backup pair opp.')).length/total*100),col:'#EF4444'},
+    {label:'New Patient Conversions',pct:Math.round(ts.filter(s=>s.isNewPatient).length/total*100),col:'#CC0000'}
+  ].forEach(f=>{
+    document.getElementById('focusBars').innerHTML+=`
+      <div class="focus-bar-wrap">
+        <div class="focus-bar-label"><span>${f.label}</span><span>${f.pct}% of patients</span></div>
+        <div class="focus-bar-track"><div class="focus-bar-fill" style="width:${f.pct}%;background:${f.col}"></div></div>
+      </div>`;
+  });
+  // reset focusBars first
+  document.getElementById('focusBars').innerHTML='';
+  const focusData=[
+    {label:'Blue Light Lens Upsell',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('blue-light')).length/total*100),col:'#7C3AED'},
+    {label:'Progressive Lens Check',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('progressive check')).length/total*100),col:'#0EA5E9'},
+    {label:'Premium/Luxury Budget',pct:Math.round(ts.filter(s=>['premium','luxury'].includes(s.score?.budgetTier)).length/total*100),col:'#10B981'},
+    {label:'High Urgency (2+ yrs overdue)',pct:Math.round(ts.filter(s=>s.score?.urgency==='high').length/total*100),col:'#F59E0B'},
+    {label:'Backup Pair Opportunity',pct:Math.round(ts.filter(s=>(s.score?.lensFlags||[]).includes('backup pair opp.')).length/total*100),col:'#EF4444'},
+    {label:'New Patient Conversions',pct:Math.round(ts.filter(s=>s.isNewPatient).length/total*100),col:'#CC0000'}
+  ];
+  document.getElementById('focusBars').innerHTML=focusData.map(f=>`
+    <div class="focus-bar-wrap">
+      <div class="focus-bar-label"><span>${f.label}</span><span>${f.pct}%</span></div>
+      <div class="focus-bar-track"><div class="focus-bar-fill" style="width:${f.pct}%;background:${f.col}"></div></div>
+    </div>`).join('');
+
+  // Lens opps
+  const blueC=ts.filter(s=>(s.score?.lensFlags||[]).includes('blue-light')).length;
+  const progC=ts.filter(s=>(s.score?.lensFlags||[]).includes('progressive check')).length;
+  const transC=ts.filter(s=>(s.score?.lensFlags||[]).includes('transitions')).length;
+  document.getElementById('lensOpportunities').innerHTML=[
+    blueC?`<div class="tip-card"><span class="tip-icon">🖥️</span><div class="tip-text"><strong>${blueC} patient(s) — Blue Light Filter</strong>High screen time detected. Avg add-on: ~$60–80.</div></div>`:'',
+    progC?`<div class="tip-card"><span class="tip-icon">👁️</span><div class="tip-text"><strong>${progC} patient(s) — Progressive Lenses</strong>Overdue glasses — likely need progressives if 40+. Avg add-on: ~$120–200.</div></div>`:'',
+    transC?`<div class="tip-card"><span class="tip-icon">☀️</span><div class="tip-text"><strong>${transC} patient(s) — Transitions</strong>High screen + outdoor lifestyle. Avg add-on: ~$80–120.</div></div>`:''
+  ].join('')||`<div class="empty-state"><div class="es-icon">📊</div>More data needed for lens insights.</div>`;
+}
+
+// ════════════════════════════════════
+//  STORE SETUP
+// ════════════════════════════════════
+function loadStoreSetup() {
+  const cfg = getStoreConfig();
+  document.getElementById('cfgStoreName').value = cfg.storeName;
+  document.getElementById('cfgAddress').value = cfg.storeAddress;
+  document.getElementById('cfgWelcomeMsg').value = cfg.welcomeMessage;
+  document.getElementById('cfgPrimary').value = cfg.primaryColor;
+  document.getElementById('cfgAccent').value = cfg.accentColor;
+  document.getElementById('cfgCsrPin').value = cfg.csrPin;
+  document.getElementById('cfgAdminPin').value = cfg.adminPin;
+  document.getElementById('cfgStoreId').value = cfg.storeId||STORE_ID;
+  updateUrlPreview();
+}
+
+function updateUrlPreview() {
+  const sid = document.getElementById('cfgStoreId')?.value.trim()||STORE_ID;
+  const baseUrl = window.location.href.split('?')[0];
+  const url = `${baseUrl}?store=${encodeURIComponent(sid)}`;
+  const el = document.getElementById('storeUrlDisplay');
+  if(el) el.textContent = url;
+}
+
+function copyStoreUrl() {
+  const url = document.getElementById('storeUrlDisplay').textContent;
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy',2000);
+  }).catch(()=>alert('URL: '+url));
+}
+
+function saveStoreConfig() {
+  const newStoreId = document.getElementById('cfgStoreId').value.trim()||STORE_ID;
+  const cfg = {
+    storeName: document.getElementById('cfgStoreName').value.trim()||'PriceSmart Optical',
+    storeAddress: document.getElementById('cfgAddress').value.trim(),
+    welcomeMessage: document.getElementById('cfgWelcomeMsg').value.trim()||"While you wait, let us get to know your style a little.",
+    primaryColor: document.getElementById('cfgPrimary').value,
+    accentColor: document.getElementById('cfgAccent').value,
+    csrPin: String(document.getElementById('cfgCsrPin').value).slice(0,4)||'1234',
+    adminPin: String(document.getElementById('cfgAdminPin').value).slice(0,4)||'9999',
+    storeId: newStoreId
+  };
+  // Save under new storeId if changed
+  if(newStoreId !== STORE_ID) {
+    const existing = getSessions();
+    localStorage.setItem('ps_sessions_'+newStoreId, JSON.stringify(existing));
+  }
+  localStorage.setItem('ps_config_'+newStoreId, JSON.stringify(cfg));
+  STORE_ID = newStoreId;
+  applyBranding(cfg);
+  // Update URL without reload
+  const baseUrl = window.location.href.split('?')[0];
+  window.history.replaceState({}, '', `${baseUrl}?store=${encodeURIComponent(newStoreId)}`);
+  updateUrlPreview();
+  generateQR();
+  const t=document.getElementById('configSuccess');
+  t.style.display='block'; setTimeout(()=>t.style.display='none',3000);
+}
+
+function generateQR() {
+  const url = document.getElementById('storeUrlDisplay').textContent;
+  if(!url||url==='—') return;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(url)}`;
+  const img = document.getElementById('storeQrCode');
+  img.src = qrUrl; img.style.display='block';
+  document.getElementById('qrLabel').textContent='Scan to open patient intake form';
+  document.getElementById('printQrBtn').style.display='inline-block';
+  // Print page
+  document.getElementById('printQrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=${encodeURIComponent(url)}`;
+  document.getElementById('printUrl').textContent=url;
+  const cfg=getStoreConfig();
+  document.getElementById('printStoreName').textContent=cfg.storeName;
+  document.getElementById('printStoreAddr').textContent=cfg.storeAddress;
+}
+
+function showPrintPage() {
+  document.getElementById('print-page').classList.add('visible');
+  setTimeout(()=>window.print(),300);
+}
+function hidePrintPage() {
+  document.getElementById('print-page').classList.remove('visible');
+}
+
+// ════════════════════════════════════
+//  INIT
+// ════════════════════════════════════
+document.addEventListener('DOMContentLoaded', ()=>{
+  seedDemoData();
+  setAllLogos();
+  const cfg = getStoreConfig();
+  applyBranding(cfg);
+  showCard(-1);
+  // Generate QR if store ID is set
+  const baseUrl = window.location.href.split('?')[0];
+  const storeUrl = `${baseUrl}?store=${encodeURIComponent(STORE_ID)}`;
+  document.getElementById('storeUrlDisplay').textContent = storeUrl;
+  document.getElementById('printUrl').textContent = storeUrl;
+  document.getElementById('storeQrCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(storeUrl)}`;
+  document.getElementById('printQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data=${encodeURIComponent(storeUrl)}`;
+  document.getElementById('storeQrCode').style.display = 'block';
+  document.getElementById('qrLabel').textContent = 'Your store\'s patient intake QR code';
+  document.getElementById('printQrBtn').style.display = 'inline-block';
+  document.getElementById('printStoreName').textContent = cfg.storeName;
+  document.getElementById('printStoreAddr').textContent = cfg.storeAddress;
+});
+</script>
+</body>
+</html>
