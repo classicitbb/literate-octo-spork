@@ -7,3 +7,6 @@ client/dist/
 *.log
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*.local
