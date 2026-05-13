@@ -16,9 +16,11 @@ async function main() {
   const adminPin = arg('--admin-pin') || '9999';
   const csrPin = arg('--csr-pin') || '1234';
   const address = arg('--address') || '';
+  const adminEmail = arg('--admin-email') || '';
+  const csrEmail = arg('--csr-email') || '';
 
   if (!name || !code) {
-    console.error('Usage: node scripts/create-tenant.js --name "Branch Name" --code "branch-code" [--admin-pin 9999] [--csr-pin 1234] [--address "123 Main St"]');
+    console.error('Usage: node scripts/create-tenant.js --name "Branch Name" --code "branch-code" [--admin-pin 9999] [--csr-pin 1234] [--address "123 Main St"] [--admin-email admin@example.com] [--csr-email csr@example.com]');
     process.exit(1);
   }
 
@@ -34,8 +36,8 @@ async function main() {
   const adminHash = await hashPin(adminPin);
   const csrHash = await hashPin(csrPin);
 
-  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, code + '-admin', adminHash);
-  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, code + '-csr', csrHash);
+  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'admin', ?, 'Admin', ?)`).run(tenantId, code + '-admin', adminHash, adminEmail);
+  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'csr', ?, 'CSR', ?)`).run(tenantId, code + '-csr', csrHash, csrEmail);
 
   console.log(`Tenant created:`);
   console.log(`   Name:         ${name}`);
@@ -43,6 +45,8 @@ async function main() {
   console.log(`   Admin PIN:    ${adminPin}`);
   console.log(`   CSR PIN:      ${csrPin}`);
   console.log(`   Tenant ID:    ${tenantId}`);
+  if (adminEmail) console.log(`   Admin email:  ${adminEmail}`);
+  if (csrEmail)   console.log(`   CSR email:    ${csrEmail}`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
