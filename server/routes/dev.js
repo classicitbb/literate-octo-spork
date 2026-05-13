@@ -21,9 +21,15 @@ router.get('/tenants', async (req, res) => {
 
 // POST /api/dev/tenants
 router.post('/tenants', async (req, res) => {
-  const { accountCode, name, address, adminPin, csrPin, welcomeMsg, primaryColor, accentColor } = req.body || {};
-  if (!accountCode || !name || !adminPin || !csrPin) {
-    return res.status(400).json({ error: 'accountCode, name, adminPin, and csrPin required' });
+  const {
+    accountCode, name, address, adminEmail, csrEmail,
+    adminPin, csrPin, welcomeMsg, primaryColor, accentColor,
+  } = req.body || {};
+  if (!accountCode || !name || !adminEmail || !csrEmail || !adminPin || !csrPin) {
+    return res.status(400).json({ error: 'accountCode, name, adminEmail, csrEmail, adminPin, and csrPin required' });
+  }
+  if (!adminEmail.includes('@') || !csrEmail.includes('@')) {
+    return res.status(400).json({ error: 'Valid admin and CSR email addresses are required' });
   }
   if (!/^\d{4}$/.test(String(adminPin)) || !/^\d{4}$/.test(String(csrPin))) {
     return res.status(400).json({ error: 'PINs must be exactly 4 digits' });
@@ -41,8 +47,10 @@ router.post('/tenants', async (req, res) => {
     const adminHash = await hashPin(adminPin);
     const csrHash = await hashPin(csrPin);
 
-    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, accountCode + '-admin', adminHash);
-    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, accountCode + '-csr', csrHash);
+    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'admin', ?, 'Admin', ?)`)
+      .run(tenantId, accountCode + '-admin', adminHash, adminEmail.trim().toLowerCase());
+    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'csr', ?, 'CSR', ?)`)
+      .run(tenantId, accountCode + '-csr', csrHash, csrEmail.trim().toLowerCase());
 
     res.status(201).json({ id: tenantId, accountCode });
   } catch (e) {
