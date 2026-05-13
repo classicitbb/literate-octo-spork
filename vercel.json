@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build && npm run migrate",
+  "buildCommand": "npm run build",
   "outputDirectory": "server/public",
   "functions": {
     "api/index.js": {
