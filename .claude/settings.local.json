@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e \"require\\('./server/db.js'\\); console.log\\('DB OK'\\)\")"
+      "Bash(node -e \"require\\('./server/db.js'\\); console.log\\('DB OK'\\)\")",
+      "mcp__a9432219-b96a-4b32-ac54-fc23a8f44a88__list_teams",
+      "mcp__a9432219-b96a-4b32-ac54-fc23a8f44a88__list_projects",
+      "mcp__a9432219-b96a-4b32-ac54-fc23a8f44a88__get_project",
+      "mcp__a9432219-b96a-4b32-ac54-fc23a8f44a88__get_deployment_build_logs"
     ]
   }
 }
