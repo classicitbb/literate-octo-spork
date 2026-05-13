@@ -13,7 +13,11 @@
       "Bash(node server/index.js)",
       "Bash(curl -s -X POST http://localhost:3000/api/auth/login -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"russell@classicvisions.net\\\\\",\\\\\"pin\\\\\":\\\\\"2906\\\\\"}\")",
       "Bash(kill %1)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "mcp__a9432219-b96a-4b32-ac54-fc23a8f44a88__list_deployments",
+      "Bash(gh pr *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
