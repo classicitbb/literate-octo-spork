@@ -23,9 +23,22 @@ if (!connectionString) {
   );
 }
 
+function sanitizeConnectionString(value) {
+  try {
+    const url = new URL(value);
+    url.searchParams.delete('sslmode');
+    url.searchParams.delete('sslcert');
+    url.searchParams.delete('sslkey');
+    url.searchParams.delete('sslrootcert');
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 const isLocalConnection = /(?:localhost|127\.0\.0\.1|\[::1\])/.test(connectionString);
 const pool = new Pool({
-  connectionString,
+  connectionString: sanitizeConnectionString(connectionString),
   ssl: isLocalConnection ? false : { rejectUnauthorized: false },
   max: Number(process.env.PG_POOL_MAX || 5),
 });
