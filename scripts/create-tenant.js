@@ -22,27 +22,27 @@ async function main() {
     process.exit(1);
   }
 
-  const existing = db.prepare('SELECT id FROM tenants WHERE account_code = ?').get(code);
+  const existing = await db.prepare('SELECT id FROM tenants WHERE account_code = ?').get(code);
   if (existing) {
     console.error(`Account code "${code}" already exists.`);
     process.exit(1);
   }
 
-  const result = db.prepare('INSERT INTO tenants (account_code, name, address) VALUES (?, ?, ?)').run(code, name, address);
+  const result = await db.prepare('INSERT INTO tenants (account_code, name, address) VALUES (?, ?, ?)').run(code, name, address);
   const tenantId = result.lastInsertRowid;
 
   const adminHash = await hashPin(adminPin);
   const csrHash = await hashPin(csrPin);
 
-  db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, code + '-admin', adminHash);
-  db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, code + '-csr', csrHash);
+  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, code + '-admin', adminHash);
+  await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, code + '-csr', csrHash);
 
-  console.log(`✅ Tenant created:`);
-  console.log(`   Name:        ${name}`);
+  console.log(`Tenant created:`);
+  console.log(`   Name:         ${name}`);
   console.log(`   Account code: ${code}`);
-  console.log(`   Admin PIN:   ${adminPin}`);
-  console.log(`   CSR PIN:     ${csrPin}`);
-  console.log(`   Tenant ID:   ${tenantId}`);
+  console.log(`   Admin PIN:    ${adminPin}`);
+  console.log(`   CSR PIN:      ${csrPin}`);
+  console.log(`   Tenant ID:    ${tenantId}`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

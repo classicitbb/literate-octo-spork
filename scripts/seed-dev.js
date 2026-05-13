@@ -45,27 +45,25 @@ function randomId() {
 async function seed() {
   console.log('Seeding dev database...');
 
-  // Create dev user
-  const devExists = db.prepare(`SELECT id FROM users WHERE role='dev' AND username='dev'`).get();
+  const devExists = await db.prepare(`SELECT id FROM users WHERE role='dev' AND username='dev'`).get();
   if (!devExists) {
     const devHash = await hashPin('0000');
-    db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (NULL, 'dev', 'dev', ?, 'Dev Admin')`).run(devHash);
+    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (NULL, 'dev', 'dev', ?, 'Dev Admin')`).run(devHash);
     console.log('Created dev user: code=dev PIN=0000');
   }
 
   for (const t of TENANTS) {
-    const existing = db.prepare('SELECT id FROM tenants WHERE account_code = ?').get(t.code);
+    const existing = await db.prepare('SELECT id FROM tenants WHERE account_code = ?').get(t.code);
     if (existing) { console.log(`Skipping existing tenant: ${t.code}`); continue; }
 
-    const result = db.prepare('INSERT INTO tenants (account_code, name, address) VALUES (?, ?, ?)').run(t.code, t.name, t.address);
+    const result = await db.prepare('INSERT INTO tenants (account_code, name, address) VALUES (?, ?, ?)').run(t.code, t.name, t.address);
     const tenantId = result.lastInsertRowid;
 
     const adminHash = await hashPin(t.adminPin);
     const csrHash = await hashPin(t.csrPin);
-    db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, t.code + '-admin', adminHash);
-    db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, t.code + '-csr', csrHash);
+    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Admin')`).run(tenantId, t.code + '-admin', adminHash);
+    await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, 'CSR')`).run(tenantId, t.code + '-csr', csrHash);
 
-    // Insert 20 demo sessions spread over today
     const base = Math.floor(Date.now() / 1000) - 3600 * 6;
     for (let i = 0; i < 20; i++) {
       const answers = SAMPLE_ANSWERS[i % SAMPLE_ANSWERS.length];
@@ -75,7 +73,7 @@ async function seed() {
       const ts = base + i * 900;
       const isNew = i % 4 === 0 ? 1 : 0;
 
-      db.prepare(`INSERT INTO sessions (id, tenant_id, timestamp, is_new_patient,
+      await db.prepare(`INSERT INTO sessions (id, tenant_id, timestamp, is_new_patient,
         contact_name, contact_phone, contact_email, answers,
         purchase_readiness, urgency, budget_tier, frame_style, face_shape, color_pref, usage_env, lens_flags,
         created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
@@ -88,7 +86,7 @@ async function seed() {
 
       const outcomeData = OUTCOMES[i % OUTCOMES.length];
       if (outcomeData) {
-        db.prepare(`UPDATE sessions SET csr_outcome=?, csr_purchase_amount=?, csr_invoice_number=?,
+        await db.prepare(`UPDATE sessions SET csr_outcome=?, csr_purchase_amount=?, csr_invoice_number=?,
           csr_purchase_type=?, csr_no_sale_reason=?, csr_followup_note=?, csr_name=?,
           csr_skills=?, csr_assessed_at=unixepoch()
           WHERE id=?`).run(

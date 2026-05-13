@@ -15,7 +15,7 @@ function generateId() {
 function sessionToClient(row) {
   return {
     id: row.id,
-    timestamp: row.timestamp * 1000, // back to ms for client
+    timestamp: row.timestamp * 1000,
     isNewPatient: !!row.is_new_patient,
     contact: { name: row.contact_name, phone: row.contact_phone, email: row.contact_email },
     answers: JSON.parse(row.answers || '{}'),
@@ -45,7 +45,7 @@ function sessionToClient(row) {
 }
 
 // GET /api/sessions
-router.get('/', requireAuth, tenantGuard, (req, res) => {
+router.get('/', requireAuth, tenantGuard, async (req, res) => {
   const tenantId = req.user.role === 'dev' ? req.query.tenantId : req.user.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'tenantId required for dev role' });
 
@@ -65,17 +65,16 @@ router.get('/', requireAuth, tenantGuard, (req, res) => {
   if (!canSeeDeleted) query += ' AND deleted_at IS NULL';
 
   query += ' ORDER BY timestamp DESC';
-  const rows = db.prepare(query).all(...params);
+  const rows = await db.prepare(query).all(...params);
   res.json(rows.map(sessionToClient));
 });
 
 // POST /api/sessions
-router.post('/', requireAuth, tenantGuard, (req, res) => {
+router.post('/', requireAuth, tenantGuard, async (req, res) => {
   const tenantId = req.user.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'Not a tenant user' });
 
-  // Enforce 1000-record limit
-  const count = db.prepare('SELECT COUNT(*) as c FROM sessions WHERE tenant_id = ? AND deleted_at IS NULL').get(tenantId);
+  const count = await db.prepare('SELECT COUNT(*) as c FROM sessions WHERE tenant_id = ? AND deleted_at IS NULL').get(tenantId);
   if (count.c >= RECORD_LIMIT) {
     return res.status(429).json({ error: 'Record limit reached. Ask your admin to archive old records.' });
   }
@@ -87,7 +86,7 @@ router.post('/', requireAuth, tenantGuard, (req, res) => {
   const id = generateId();
   const now = Math.floor(Date.now() / 1000);
 
-  db.prepare(`INSERT INTO sessions (
+  await db.prepare(`INSERT INTO sessions (
     id, tenant_id, timestamp, is_new_patient,
     contact_name, contact_phone, contact_email,
     answers, purchase_readiness, urgency, budget_tier,
@@ -107,31 +106,31 @@ router.post('/', requireAuth, tenantGuard, (req, res) => {
 });
 
 // PATCH /api/sessions/:id/contact
-router.patch('/:id/contact', requireAuth, tenantGuard, (req, res) => {
+router.patch('/:id/contact', requireAuth, tenantGuard, async (req, res) => {
   const { name, phone, email } = req.body || {};
   const tenantId = req.user.role === 'dev' ? undefined : req.user.tenantId;
   const where = tenantId ? 'id = ? AND tenant_id = ?' : 'id = ?';
   const params = tenantId ? [req.params.id, tenantId] : [req.params.id];
 
-  const row = db.prepare(`SELECT id FROM sessions WHERE ${where} AND deleted_at IS NULL`).get(...params);
+  const row = await db.prepare(`SELECT id FROM sessions WHERE ${where} AND deleted_at IS NULL`).get(...params);
   if (!row) return res.status(404).json({ error: 'Session not found' });
 
-  db.prepare(`UPDATE sessions SET contact_name=?, contact_phone=?, contact_email=?, updated_at=unixepoch() WHERE id=?`)
+  await db.prepare(`UPDATE sessions SET contact_name=?, contact_phone=?, contact_email=?, updated_at=unixepoch() WHERE id=?`)
     .run(name || '', phone || '', email || '', req.params.id);
   res.json({ ok: true });
 });
 
 // PATCH /api/sessions/:id/assessment
-router.patch('/:id/assessment', requireAuth, tenantGuard, (req, res) => {
+router.patch('/:id/assessment', requireAuth, tenantGuard, async (req, res) => {
   const { outcome, purchaseAmount, invoiceNumber, purchaseType, noSaleReason, followupNote, notes, csrName, skills } = req.body || {};
   const tenantId = req.user.role === 'dev' ? undefined : req.user.tenantId;
   const where = tenantId ? 'id = ? AND tenant_id = ?' : 'id = ?';
   const params = tenantId ? [req.params.id, tenantId] : [req.params.id];
 
-  const row = db.prepare(`SELECT id FROM sessions WHERE ${where} AND deleted_at IS NULL`).get(...params);
+  const row = await db.prepare(`SELECT id FROM sessions WHERE ${where} AND deleted_at IS NULL`).get(...params);
   if (!row) return res.status(404).json({ error: 'Session not found' });
 
-  db.prepare(`UPDATE sessions SET
+  await db.prepare(`UPDATE sessions SET
     csr_outcome=?, csr_purchase_amount=?, csr_invoice_number=?, csr_purchase_type=?,
     csr_no_sale_reason=?, csr_followup_note=?, csr_notes=?, csr_name=?,
     csr_skills=?, csr_assessed_at=unixepoch(), csr_user_id=?, updated_at=unixepoch()
@@ -144,22 +143,22 @@ router.patch('/:id/assessment', requireAuth, tenantGuard, (req, res) => {
 });
 
 // DELETE /api/sessions/:id — soft delete, admin only
-router.delete('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
   const tenantId = req.user.role === 'dev' ? undefined : req.user.tenantId;
   const where = tenantId ? 'id = ? AND tenant_id = ?' : 'id = ?';
   const params = tenantId ? [req.params.id, tenantId] : [req.params.id];
 
-  const row = db.prepare(`SELECT id FROM sessions WHERE ${where}`).get(...params);
+  const row = await db.prepare(`SELECT id FROM sessions WHERE ${where}`).get(...params);
   if (!row) return res.status(404).json({ error: 'Session not found' });
 
-  db.prepare(`UPDATE sessions SET deleted_at=unixepoch(), deleted_by=?, updated_at=unixepoch() WHERE id=?`)
+  await db.prepare(`UPDATE sessions SET deleted_at=unixepoch(), deleted_by=?, updated_at=unixepoch() WHERE id=?`)
     .run(req.user.userId, req.params.id);
   res.json({ ok: true });
 });
 
 // PATCH /api/sessions/:id/restore — admin only
-router.patch('/:id/restore', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
-  db.prepare(`UPDATE sessions SET deleted_at=NULL, deleted_by=NULL, updated_at=unixepoch() WHERE id=?`)
+router.patch('/:id/restore', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
+  await db.prepare(`UPDATE sessions SET deleted_at=NULL, deleted_by=NULL, updated_at=unixepoch() WHERE id=?`)
     .run(req.params.id);
   res.json({ ok: true });
 });

@@ -17,6 +17,7 @@
     "create-tenant": "node scripts/create-tenant.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

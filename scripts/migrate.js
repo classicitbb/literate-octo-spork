@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 'use strict';
-// Runs pending migrations. The db.js module already runs migrations on require,
-// so just requiring it is enough. This script exists for explicit CLI invocation.
 require('dotenv').config();
-require('../server/db');
-console.log('Migrations complete.');
+const db = require('../server/db');
+
+db.init()
+  .then(() => {
+    console.log('Migrations complete.');
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('Migration failed:', err);
+    process.exit(1);
+  });

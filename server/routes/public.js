@@ -14,22 +14,21 @@ router.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
 });
 
-router.post('/contact', (req, res) => {
+router.post('/contact', async (req, res) => {
   const { name, email, message } = req.body || {};
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
   }
-  db.prepare('INSERT INTO contact_submissions (name, email, message) VALUES (?, ?, ?)').run(name, email, message);
+  await db.prepare('INSERT INTO contact_submissions (name, email, message) VALUES (?, ?, ?)').run(name, email, message);
   res.json({ ok: true });
 });
 
 // GET /api/public/tenant?code=ACCOUNT_CODE
-// Returns public branding info for a store — used by the QR intake route
-router.get('/public/tenant', (req, res) => {
+router.get('/public/tenant', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).json({ error: 'code required' });
 
-  const tenant = db.prepare(
+  const tenant = await db.prepare(
     `SELECT name, welcome_msg, primary_color, accent_color, logo_url
      FROM tenants WHERE account_code = ? AND status = 'active'`
   ).get(code);
@@ -46,19 +45,18 @@ router.get('/public/tenant', (req, res) => {
 });
 
 // POST /api/public/intake
-// Accepts patient intake submissions from the QR / tablet link (no auth required)
-router.post('/public/intake', (req, res) => {
+router.post('/public/intake', async (req, res) => {
   const { accountCode, isNewPatient, contact, answers } = req.body || {};
   if (!accountCode || !answers) {
     return res.status(400).json({ error: 'accountCode and answers required' });
   }
 
-  const tenant = db.prepare(
+  const tenant = await db.prepare(
     `SELECT * FROM tenants WHERE account_code = ? AND status = 'active'`
   ).get(accountCode);
   if (!tenant) return res.status(404).json({ error: 'Store not found' });
 
-  const count = db.prepare(
+  const count = await db.prepare(
     'SELECT COUNT(*) as c FROM sessions WHERE tenant_id = ? AND deleted_at IS NULL'
   ).get(tenant.id);
   if (count.c >= RECORD_LIMIT) {
@@ -69,7 +67,7 @@ router.post('/public/intake', (req, res) => {
   const id = generateId();
   const now = Math.floor(Date.now() / 1000);
 
-  db.prepare(`INSERT INTO sessions (
+  await db.prepare(`INSERT INTO sessions (
     id, tenant_id, timestamp, is_new_patient,
     contact_name, contact_phone, contact_email,
     answers, purchase_readiness, urgency, budget_tier,

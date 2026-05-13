@@ -16,10 +16,10 @@ function dateRange(dateStr) {
   return { start: Math.floor(start.getTime() / 1000), end: Math.floor(end.getTime() / 1000) };
 }
 
-function getOverview(tenantId, dateStr) {
+async function getOverview(tenantId, dateStr) {
   const { start, end } = dateRange(dateStr);
 
-  const allDay = db.prepare(`
+  const allDay = await db.prepare(`
     SELECT * FROM sessions
     WHERE tenant_id = ? AND timestamp >= ? AND timestamp < ?
   `).all(tenantId, start, end);
@@ -44,9 +44,9 @@ function getOverview(tenantId, dateStr) {
   };
 }
 
-function getCsrPerformance(tenantId, dateStr) {
+async function getCsrPerformance(tenantId, dateStr) {
   const { start, end } = dateRange(dateStr);
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT csr_name, csr_outcome, csr_purchase_amount, csr_skills
     FROM sessions
     WHERE tenant_id = ? AND timestamp >= ? AND timestamp < ?
@@ -78,9 +78,9 @@ function getCsrPerformance(tenantId, dateStr) {
   }).sort((a, b) => b.revenue - a.revenue);
 }
 
-function getFocusAreas(tenantId, dateStr) {
+async function getFocusAreas(tenantId, dateStr) {
   const { start, end } = dateRange(dateStr);
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT lens_flags, budget_tier, urgency, is_new_patient, csr_outcome
     FROM sessions
     WHERE tenant_id = ? AND timestamp >= ? AND timestamp < ? AND deleted_at IS NULL
