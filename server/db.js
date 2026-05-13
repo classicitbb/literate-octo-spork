@@ -5,11 +5,21 @@ require('dotenv').config({ path: process.env.ENV_FILE || '.env' });
 
 const { createClient } = require('@libsql/client');
 
-const url = process.env.TURSO_URL || `file:${path.resolve('./server/data/dev.db')}`;
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+const url = process.env.TURSO_URL || process.env.TURSO_DATABASE_URL || (
+  isProduction ? null : `file:${path.resolve('./server/data/dev.db')}`
+);
 const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+
+if (!url) {
+  throw new Error('Database is not configured. Set TURSO_URL and TURSO_AUTH_TOKEN in the deployment environment.');
+}
 
 // Ensure local data directory exists for file:// URLs (local dev only)
 if (url.startsWith('file:')) {
+  if (isProduction) {
+    throw new Error('Production deployments must use Turso. file: database URLs are only supported for local development.');
+  }
   const filePath = url.replace(/^file:/, '');
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });

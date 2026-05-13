@@ -22,6 +22,8 @@ export function renderDevHTML() {
     <input class="dev-input" id="devNewCode" placeholder="Account code (e.g. trinidad-branch-3)">
     <input class="dev-input" id="devNewName" placeholder="Clinic name (e.g. Demo Clinic — North)">
     <input class="dev-input" id="devNewAddress" placeholder="Store address (optional)">
+    <input class="dev-input" id="devNewAdminEmail" type="email" placeholder="Admin email">
+    <input class="dev-input" id="devNewCsrEmail" type="email" placeholder="CSR email">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <input class="dev-input" id="devNewAdminPin" placeholder="Admin PIN (4 digits)" maxlength="4" style="margin-bottom:0">
       <input class="dev-input" id="devNewCsrPin" placeholder="CSR PIN (4 digits)" maxlength="4" style="margin-bottom:0">
@@ -170,14 +172,17 @@ function bindDevEvents() {
       const code = document.getElementById('devNewCode')?.value.trim();
       const name = document.getElementById('devNewName')?.value.trim();
       const address = document.getElementById('devNewAddress')?.value.trim();
+      const adminEmail = document.getElementById('devNewAdminEmail')?.value.trim();
+      const csrEmail = document.getElementById('devNewCsrEmail')?.value.trim();
       const adminPin = document.getElementById('devNewAdminPin')?.value.trim();
       const csrPin = document.getElementById('devNewCsrPin')?.value.trim();
-      if (!code || !name || !adminPin || !csrPin) { showToast('Fill in all required fields', 'warning'); return; }
+      if (!code || !name || !adminEmail || !csrEmail || !adminPin || !csrPin) { showToast('Fill in all required fields', 'warning'); return; }
+      if (!adminEmail.includes('@') || !csrEmail.includes('@')) { showToast('Enter valid emails', 'warning'); return; }
       if (!/^\d{4}$/.test(adminPin) || !/^\d{4}$/.test(csrPin)) { showToast('PINs must be exactly 4 digits', 'warning'); return; }
       try {
-        await api.post('/dev/tenants', { accountCode: code, name, address, adminPin, csrPin });
+        await api.post('/dev/tenants', { accountCode: code, name, address, adminEmail, csrEmail, adminPin, csrPin });
         showToast(`Tenant "${name}" created`);
-        ['devNewCode','devNewName','devNewAddress','devNewAdminPin','devNewCsrPin'].forEach(id => {
+        ['devNewCode','devNewName','devNewAddress','devNewAdminEmail','devNewCsrEmail','devNewAdminPin','devNewCsrPin'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.value = '';
         });
