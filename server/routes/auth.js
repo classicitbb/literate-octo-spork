@@ -5,12 +5,67 @@ const { signToken, signRefreshToken, verifyRefreshToken, comparePin } = require(
 const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  const { accountCode, pin } = req.body || {};
-  if (!accountCode || !pin) return res.status(400).json({ error: 'accountCode and pin required' });
+function issueTokens(res, payload, userId) {
+  const token = signToken(payload);
+  const refreshToken = signRefreshToken({ userId });
+  res.cookie('ps_refresh', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 30 * 86400 * 1000,
+    sameSite: 'lax',
+  });
+  return token;
+}
 
-  // Dev login — account_code 'dev' or matching a dev user
+// POST /api/auth/login
+// Accepts: { email, pin } for staff/admin  OR  { accountCode, pin } (legacy / dev)
+router.post('/login', async (req, res) => {
+  const { accountCode, email, pin } = req.body || {};
+
+  if (!pin) return res.status(400).json({ error: 'pin required' });
+  if (!email && !accountCode) return res.status(400).json({ error: 'email or accountCode required' });
+
+  // ── Email-based login (staff / admin) ──
+  if (email) {
+    const user = db.prepare(
+      `SELECT u.*, t.account_code, t.name as tenant_name, t.address as tenant_address,
+              t.status as tenant_status, t.primary_color, t.accent_color,
+              t.logo_url, t.welcome_msg
+       FROM users u
+       LEFT JOIN tenants t ON u.tenant_id = t.id
+       WHERE lower(u.email) = lower(?) AND u.is_active = 1`
+    ).get(email.trim());
+
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (user.tenant_id && user.tenant_status !== 'active') {
+      return res.status(403).json({ error: 'Account is ' + user.tenant_status });
+    }
+
+    const ok = await comparePin(pin, user.pin_hash);
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const payload = {
+      userId: user.id,
+      role: user.role,
+      tenantId: user.tenant_id || null,
+      displayName: user.display_name || user.username,
+    };
+    const token = issueTokens(res, payload, user.id);
+
+    const tenant = user.tenant_id ? {
+      id: user.tenant_id,
+      name: user.tenant_name,
+      address: user.tenant_address,
+      welcomeMsg: user.welcome_msg,
+      primaryColor: user.primary_color,
+      accentColor: user.accent_color,
+      logoUrl: user.logo_url,
+    } : null;
+
+    return res.json({ token, user: payload, tenant });
+  }
+
+  // ── Account-code login (dev user or legacy) ──
   const devUser = db.prepare(
     `SELECT * FROM users WHERE role = 'dev' AND username = ? AND is_active = 1`
   ).get(accountCode);
@@ -20,13 +75,10 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Invalid PIN' });
 
     const payload = { userId: devUser.id, role: 'dev', tenantId: null, displayName: devUser.display_name || 'Dev' };
-    const token = signToken(payload);
-    const refreshToken = signRefreshToken({ userId: devUser.id });
-    res.cookie('ps_refresh', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 30 * 86400 * 1000, sameSite: 'lax' });
+    const token = issueTokens(res, payload, devUser.id);
     return res.json({ token, user: payload, tenant: null });
   }
 
-  // Tenant login
   const tenant = db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
   if (!tenant) return res.status(401).json({ error: 'Invalid account code' });
   if (tenant.status !== 'active') return res.status(403).json({ error: 'Account is ' + tenant.status });
@@ -40,7 +92,6 @@ router.post('/login', async (req, res) => {
     const ok = await comparePin(pin, u.pin_hash);
     if (ok) { matchedUser = u; break; }
   }
-
   if (!matchedUser) return res.status(401).json({ error: 'Invalid PIN' });
 
   const payload = {
@@ -49,11 +100,9 @@ router.post('/login', async (req, res) => {
     tenantId: tenant.id,
     displayName: matchedUser.display_name || matchedUser.username,
   };
-  const token = signToken(payload);
-  const refreshToken = signRefreshToken({ userId: matchedUser.id });
-  res.cookie('ps_refresh', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 30 * 86400 * 1000, sameSite: 'lax' });
+  const token = issueTokens(res, payload, matchedUser.id);
 
-  res.json({
+  return res.json({
     token,
     user: payload,
     tenant: {
@@ -87,10 +136,13 @@ router.post('/refresh', (req, res) => {
       tenantId: user.tenant_id || null,
       displayName: user.display_name || user.username,
     };
-    res.json({ token: signToken(tokenPayload), tenant: tenant ? {
-      id: tenant.id, name: tenant.name, primaryColor: tenant.primary_color,
-      accentColor: tenant.accent_color, welcomeMsg: tenant.welcome_msg,
-    } : null });
+    res.json({
+      token: signToken(tokenPayload),
+      tenant: tenant ? {
+        id: tenant.id, name: tenant.name, primaryColor: tenant.primary_color,
+        accentColor: tenant.accent_color, welcomeMsg: tenant.welcome_msg,
+      } : null,
+    });
   } catch {
     res.status(401).json({ error: 'Invalid refresh token' });
   }
@@ -107,7 +159,7 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// POST /api/auth/emulate-end — client calls this to log emulation end
+// POST /api/auth/emulate-end
 router.post('/emulate-end', requireAuth, (req, res) => {
   if (req.user.isEmulation && req.user.emulationLogId) {
     db.prepare('UPDATE emulation_log SET ended_at = unixepoch() WHERE id = ?').run(req.user.emulationLogId);

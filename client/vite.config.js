@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
+    port: parseInt(process.env.PORT) || 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
