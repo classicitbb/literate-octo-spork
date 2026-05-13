@@ -18,16 +18,14 @@ function issueTokens(res, payload, userId) {
 }
 
 // POST /api/auth/login
-// Accepts: { email, pin } for staff/admin  OR  { accountCode, pin } (legacy / dev)
 router.post('/login', async (req, res) => {
   const { accountCode, email, pin } = req.body || {};
 
   if (!pin) return res.status(400).json({ error: 'pin required' });
   if (!email && !accountCode) return res.status(400).json({ error: 'email or accountCode required' });
 
-  // ── Email-based login (staff / admin) ──
   if (email) {
-    const user = db.prepare(
+    const user = await db.prepare(
       `SELECT u.*, t.account_code, t.name as tenant_name, t.address as tenant_address,
               t.status as tenant_status, t.primary_color, t.accent_color,
               t.logo_url, t.welcome_msg
@@ -65,8 +63,7 @@ router.post('/login', async (req, res) => {
     return res.json({ token, user: payload, tenant });
   }
 
-  // ── Account-code login (dev user or legacy) ──
-  const devUser = db.prepare(
+  const devUser = await db.prepare(
     `SELECT * FROM users WHERE role = 'dev' AND username = ? AND is_active = 1`
   ).get(accountCode);
 
@@ -79,11 +76,11 @@ router.post('/login', async (req, res) => {
     return res.json({ token, user: payload, tenant: null });
   }
 
-  const tenant = db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
+  const tenant = await db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
   if (!tenant) return res.status(401).json({ error: 'Invalid account code' });
   if (tenant.status !== 'active') return res.status(403).json({ error: 'Account is ' + tenant.status });
 
-  const users = db.prepare(
+  const users = await db.prepare(
     `SELECT * FROM users WHERE tenant_id = ? AND is_active = 1 AND role IN ('csr','admin')`
   ).all(tenant.id);
 
@@ -118,16 +115,16 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/refresh
-router.post('/refresh', (req, res) => {
+router.post('/refresh', async (req, res) => {
   const refreshToken = req.cookies?.ps_refresh;
   if (!refreshToken) return res.status(401).json({ error: 'No refresh token' });
   try {
     const payload = verifyRefreshToken(refreshToken);
-    const user = db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(payload.userId);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(payload.userId);
     if (!user) return res.status(401).json({ error: 'User not found' });
 
     const tenant = user.tenant_id
-      ? db.prepare('SELECT * FROM tenants WHERE id = ?').get(user.tenant_id)
+      ? await db.prepare('SELECT * FROM tenants WHERE id = ?').get(user.tenant_id)
       : null;
 
     const tokenPayload = {
@@ -160,9 +157,9 @@ router.get('/me', requireAuth, (req, res) => {
 });
 
 // POST /api/auth/emulate-end
-router.post('/emulate-end', requireAuth, (req, res) => {
+router.post('/emulate-end', requireAuth, async (req, res) => {
   if (req.user.isEmulation && req.user.emulationLogId) {
-    db.prepare('UPDATE emulation_log SET ended_at = unixepoch() WHERE id = ?').run(req.user.emulationLogId);
+    await db.prepare('UPDATE emulation_log SET ended_at = unixepoch() WHERE id = ?').run(req.user.emulationLogId);
   }
   res.json({ ok: true });
 });
