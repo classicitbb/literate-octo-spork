@@ -34,6 +34,9 @@ let currentAnswers = {};
 let patientContact = { name: '', phone: '', email: '' };
 let _storeName = 'PriceSmart Optical';
 let _welcomeMsg = "While you wait, let us get to know your style a little — so we can make the most of your visit today.";
+let _publicCode = null; // set when launched from a QR/link without staff auth
+
+export function setPublicMode(code) { _publicCode = code; }
 
 export function initIntake(tenant) {
   if (tenant) {
@@ -194,11 +197,11 @@ function goBack() {
 async function showThankYou() {
   let score = {};
   try {
-    const result = await api.post('/sessions', {
-      isNewPatient,
-      contact: { ...patientContact },
-      answers: { ...currentAnswers },
-    });
+    const endpoint = _publicCode ? '/public/intake' : '/sessions';
+    const payload = _publicCode
+      ? { accountCode: _publicCode, isNewPatient, contact: { ...patientContact }, answers: { ...currentAnswers } }
+      : { isNewPatient, contact: { ...patientContact }, answers: { ...currentAnswers } };
+    const result = await api.post(endpoint, payload);
     score = result.score || {};
   } catch (e) {
     if (e.status === 429) {

@@ -3,34 +3,100 @@ import './styles/patient.css';
 import './styles/csr.css';
 import './styles/admin.css';
 import './styles/shared.css';
+import './styles/marketing.css';
 
 import { api, parseJwt, isTokenValid } from './api.js';
 import { setAllLogos, applyBranding } from './components/branding.js';
 import { initModeStrip, switchView } from './components/modeStrip.js';
-import { initIntake, resetIntake, toggleFullscreen } from './pages/intake.js';
+import { initIntake, resetIntake, toggleFullscreen, setPublicMode } from './pages/intake.js';
 import { renderCSRHTML, initCSR, bindCSREvents, refreshCSRView } from './pages/csr.js';
 import { renderAdminHTML, initAdmin, bindAdminEvents } from './pages/admin.js';
 import { renderPublicHTML, bindPublicEvents } from './pages/public.js';
+import { renderMarketingHTML, bindMarketingEvents } from './pages/marketing.js';
 import { renderDevHTML, initDev } from './pages/dev.js';
 
-// Expose fullscreen globally (called from patient view inline button)
 window.toggleFullscreen = toggleFullscreen;
 
+// ── Routing ──────────────────────────────────────────────────────────────────
+
+function getRoute() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#/intake/')) {
+    return { type: 'intake', code: decodeURIComponent(hash.slice('#/intake/'.length)) };
+  }
+  if (hash === '#/login') return { type: 'login' };
+  return { type: 'marketing' };
+}
+
 async function boot() {
+  const route = getRoute();
+
+  // QR / in-store intake — no auth required
+  if (route.type === 'intake') {
+    await mountIntakePublic(route.code);
+    return;
+  }
+
+  // Authenticated session — go straight to the app
   const token = api.getToken();
-  const isEmulationReturn = !!localStorage.getItem('ps_dev_token');
+  if (isTokenValid(token)) {
+    await mountAuthenticated(token);
+    return;
+  }
 
-  // If returning from emulation reload, check which token to use
-  const activeToken = token;
-
-  if (!isTokenValid(activeToken)) {
+  if (route.type === 'login') {
     mountPublic();
     return;
   }
 
-  const payload = parseJwt(activeToken);
+  // Default: marketing page
+  mountMarketing();
+}
 
-  // Check for staging env
+window.addEventListener('hashchange', boot);
+
+// ── Mount functions ───────────────────────────────────────────────────────────
+
+function mountMarketing() {
+  document.getElementById('app').innerHTML = renderMarketingHTML();
+  bindMarketingEvents();
+}
+
+function mountPublic() {
+  document.getElementById('app').innerHTML = renderPublicHTML();
+  bindPublicEvents(onLogin);
+}
+
+async function mountIntakePublic(code) {
+  let tenantConfig = null;
+  try {
+    const r = await fetch(`/api/public/tenant?code=${encodeURIComponent(code)}`);
+    if (r.ok) tenantConfig = await r.json();
+  } catch {}
+
+  if (tenantConfig) applyBranding(tenantConfig);
+
+  document.getElementById('app').innerHTML = `
+    <div id="patient-view" class="view active">
+      <div class="patient-topbar">
+        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
+        <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+      </div>
+      <div class="patient-header">
+        <div class="progress-dots" id="progressDots"></div>
+        <div class="progress-label" id="progressLabel"></div>
+      </div>
+      <div class="card-stage" id="cardStage"></div>
+    </div>`;
+
+  setAllLogos();
+  setPublicMode(code);
+  initIntake(tenantConfig);
+}
+
+async function mountAuthenticated(token) {
+  const payload = parseJwt(token);
+
   try {
     const health = await fetch('/api/health').then(r => r.json());
     if (health.env === 'staging') {
@@ -39,46 +105,31 @@ async function boot() {
     }
   } catch {}
 
-  // Emulation banner
-  if (payload.isEmulation) {
-    const banner = document.getElementById('emulation-banner');
-    if (banner) {
-      banner.classList.remove('hidden');
-      const nameEl = banner.querySelector('#emulationTenantName');
-      if (nameEl) nameEl.textContent = 'Tenant #' + payload.tenantId;
-      const exitBtn = banner.querySelector('#exitEmulationBtn');
-      if (exitBtn) {
-        exitBtn.addEventListener('click', async () => {
-          try { await api.post('/auth/emulate-end', {}); } catch {}
-          const devToken = localStorage.getItem('ps_dev_token');
-          localStorage.removeItem('ps_dev_token');
-          api.setToken(devToken);
-          window.location.reload();
-        });
-      }
-    }
-  }
-
-  // Load tenant config for branding
   let tenantConfig = null;
   if (payload.tenantId) {
     try {
       tenantConfig = await api.get('/config');
       applyBranding(tenantConfig);
-      // Update emulation banner with real name
-      if (payload.isEmulation) {
-        const nameEl = document.getElementById('emulationTenantName');
-        if (nameEl && tenantConfig.name) nameEl.textContent = tenantConfig.name;
-      }
     } catch {}
   }
 
   mountApp(payload, tenantConfig);
-}
 
-function mountPublic() {
-  document.getElementById('app').innerHTML = renderPublicHTML();
-  bindPublicEvents(onLogin);
+  if (payload.isEmulation) {
+    const banner = document.getElementById('emulation-banner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      const nameEl = banner.querySelector('#emulationTenantName');
+      if (nameEl) nameEl.textContent = tenantConfig?.name || 'Tenant #' + payload.tenantId;
+      banner.querySelector('#exitEmulationBtn')?.addEventListener('click', async () => {
+        try { await api.post('/auth/emulate-end', {}); } catch {}
+        const devToken = localStorage.getItem('ps_dev_token');
+        localStorage.removeItem('ps_dev_token');
+        api.setToken(devToken);
+        window.location.reload();
+      });
+    }
+  }
 }
 
 async function onLogin(loginData) {
@@ -93,11 +144,7 @@ function mountApp(payload, tenantConfig) {
   const { role } = payload;
   const appEl = document.getElementById('app');
 
-  // Build page shell
-  let html = '';
-
-  // Patient view is always present
-  html += `
+  let html = `
     <div id="patient-view" class="view active">
       <div class="patient-topbar">
         <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
@@ -114,56 +161,24 @@ function mountApp(payload, tenantConfig) {
   if (['admin', 'dev'].includes(role)) html += renderAdminHTML(tenantConfig);
   if (role === 'dev') html += renderDevHTML();
 
-  // Mode strip
   html += `<div class="mode-strip" id="modeStrip"></div>`;
-
-  // Emulation banner (hidden by default)
   html += `
     <div id="emulation-banner" class="hidden">
       🟡 Emulating: <strong id="emulationTenantName">Tenant</strong>
       <button id="exitEmulationBtn">Exit Emulation</button>
     </div>`;
-
-  // Staging ribbon (hidden by default, shown after health check)
   html += `<div id="staging-ribbon" style="display:none">STAGING</div>`;
 
   appEl.innerHTML = html;
-
-  // Re-run emulation banner logic after render
-  if (payload.isEmulation) {
-    const banner = document.getElementById('emulation-banner');
-    if (banner) {
-      banner.classList.remove('hidden');
-      if (tenantConfig?.name) {
-        document.getElementById('emulationTenantName').textContent = tenantConfig.name;
-      }
-      document.getElementById('exitEmulationBtn')?.addEventListener('click', async () => {
-        try { await api.post('/auth/emulate-end', {}); } catch {}
-        const devToken = localStorage.getItem('ps_dev_token');
-        localStorage.removeItem('ps_dev_token');
-        api.setToken(devToken);
-        window.location.reload();
-      });
-    }
-  }
 
   setAllLogos();
   initModeStrip(role, onViewSwitch);
   initIntake(tenantConfig);
 
-  if (['csr', 'admin', 'dev'].includes(role)) {
-    bindCSREvents();
-    initCSR();
-  }
-  if (['admin', 'dev'].includes(role)) {
-    bindAdminEvents(window.location.origin);
-    initAdmin();
-  }
-  if (role === 'dev') {
-    initDev();
-  }
+  if (['csr', 'admin', 'dev'].includes(role)) { bindCSREvents(); initCSR(); }
+  if (['admin', 'dev'].includes(role)) { bindAdminEvents(window.location.origin); initAdmin(); }
+  if (role === 'dev') initDev();
 
-  // Default view: patient for csr, csr for admin, dev for dev, patient otherwise
   const defaultView = role === 'dev' ? 'dev' : role === 'admin' ? 'admin' : 'patient';
   switchView(defaultView);
 }
