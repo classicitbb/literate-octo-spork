@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.staging
+server/data/*.db
+server/public/
+client/dist/
+*.log
+.DS_Store
+Thumbs.db
