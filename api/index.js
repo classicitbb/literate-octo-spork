@@ -19,6 +19,7 @@ const appPromise = (async () => {
 
 module.exports = async (req, res) => {
   if (req.url === '/api/health' || req.url === '/health') {
+    if (!ready && !startupError) await appPromise;
     res.setHeader('Content-Type', 'application/json');
     res.statusCode = startupError ? 503 : 200;
     res.end(JSON.stringify({
