@@ -4,7 +4,7 @@ const fs = require('fs');
 require('dotenv').config({ path: process.env.ENV_FILE || '.env' });
 const { DatabaseSync } = require('node:sqlite');
 
-const dbPath = process.env.DB_PATH || './server/data/pricesmart.db';
+const dbPath = process.env.DB_PATH || (process.env.VERCEL ? '/tmp/pricesmart.db' : './server/data/pricesmart.db');
 const dataDir = path.dirname(path.resolve(dbPath));
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 

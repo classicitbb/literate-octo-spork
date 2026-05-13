@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const db = require('../db');
-const { signToken, signRefreshToken, verifyRefreshToken, comparePin } = require('../services/auth');
+const { signToken, signRefreshToken, verifyRefreshToken, comparePin, hashPin } = require('../services/auth');
 const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
@@ -16,6 +16,47 @@ function issueTokens(res, payload, userId) {
   });
   return token;
 }
+
+// GET /api/auth/setup-status — public, returns whether first-time setup is needed
+router.get('/setup-status', async (req, res) => {
+  const row = await db.prepare('SELECT COUNT(*) as n FROM users').get();
+  res.json({ needsSetup: row.n === 0 });
+});
+
+// POST /api/auth/setup — first-time setup, only works when DB is empty
+router.post('/setup', async (req, res) => {
+  const row = await db.prepare('SELECT COUNT(*) as n FROM users').get();
+  if (row.n > 0) return res.status(409).json({ error: 'Already set up' });
+
+  const { storeName, email, pin } = req.body || {};
+  if (!storeName || !email || !pin) {
+    return res.status(400).json({ error: 'storeName, email, and pin required' });
+  }
+  if (!/^\d{4,8}$/.test(String(pin))) {
+    return res.status(400).json({ error: 'PIN must be 4–8 digits' });
+  }
+
+  const code = storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mystore';
+  const tenantResult = await db.prepare(
+    `INSERT INTO tenants (account_code, name, address, status) VALUES (?, ?, '', 'active')`
+  ).run(code, storeName.trim());
+  const tenantId = tenantResult.lastInsertRowid;
+
+  const pinHash = await hashPin(pin);
+  const userResult = await db.prepare(
+    `INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'admin', ?, 'Admin', ?)`
+  ).run(tenantId, code + '-admin', pinHash, email.trim().toLowerCase());
+  const userId = userResult.lastInsertRowid;
+
+  const payload = { userId, role: 'admin', tenantId, displayName: 'Admin' };
+  const token = issueTokens(res, payload, userId);
+
+  res.status(201).json({
+    token,
+    user: { ...payload, email: email.trim().toLowerCase() },
+    tenant: { id: tenantId, name: storeName.trim(), address: '' },
+  });
+});
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -60,7 +101,7 @@ router.post('/login', async (req, res) => {
       logoUrl: user.logo_url,
     } : null;
 
-    return res.json({ token, user: payload, tenant });
+    return res.json({ token, user: { ...payload, email: user.email || '' }, tenant });
   }
 
   const devUser = await db.prepare(
@@ -73,7 +114,7 @@ router.post('/login', async (req, res) => {
 
     const payload = { userId: devUser.id, role: 'dev', tenantId: null, displayName: devUser.display_name || 'Dev' };
     const token = issueTokens(res, payload, devUser.id);
-    return res.json({ token, user: payload, tenant: null });
+    return res.json({ token, user: { ...payload, email: devUser.email || '' }, tenant: null });
   }
 
   const tenant = await db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
@@ -101,7 +142,7 @@ router.post('/login', async (req, res) => {
 
   return res.json({
     token,
-    user: payload,
+    user: { ...payload, email: matchedUser.email || '' },
     tenant: {
       id: tenant.id,
       name: tenant.name,
@@ -152,8 +193,22 @@ router.post('/logout', requireAuth, (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await db.prepare('SELECT id, email, display_name FROM users WHERE id = ?').get(req.user.userId);
+  res.json({ user: { ...req.user, email: user?.email || '' } });
+});
+
+// PATCH /api/auth/me — update own email
+router.patch('/me', requireAuth, async (req, res) => {
+  const { email } = req.body || {};
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Valid email required' });
+  try {
+    await db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.trim().toLowerCase(), req.user.userId);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'Email already in use' });
+    throw e;
+  }
 });
 
 // POST /api/auth/emulate-end
