@@ -24,8 +24,13 @@ module.exports = async (req, res) => {
     res.end(JSON.stringify({
       ok: !startupError,
       env: process.env.NODE_ENV || 'development',
-      tursoUrlConfigured: Boolean(process.env.TURSO_URL || process.env.TURSO_DATABASE_URL),
-      tursoAuthTokenConfigured: Boolean(process.env.TURSO_AUTH_TOKEN),
+      postgresUrlConfigured: Boolean(
+        process.env.DATABASE_URL ||
+        process.env.POSTGRES_URL_NON_POOLING ||
+        process.env.POSTGRES_PRISMA_URL ||
+        process.env.POSTGRES_URL ||
+        process.env.SUPABASE_DB_URL
+      ),
       dbReady: ready,
       error: startupError ? 'Database initialization failed' : null,
     }));

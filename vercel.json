@@ -2,11 +2,6 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "server/public",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "server/migrations/**"
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }

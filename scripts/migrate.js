@@ -2,12 +2,17 @@
 'use strict';
 require('dotenv').config();
 
-// Requiring db.js automatically runs migrations (runMigrations is called on load)
-try {
-    require('../server/db');
+const db = require('../server/db');
+
+(async () => {
+  try {
+    await db._migrate();
     console.log('Migrations complete.');
+    await db.close?.();
     process.exit(0);
-} catch (err) {
+  } catch (err) {
     console.error('Migration failed:', err);
+    await db.close?.().catch(() => {});
     process.exit(1);
-}
+  }
+})();

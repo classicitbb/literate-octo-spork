@@ -1,40 +1,42 @@
 'use strict';
-const path = require('path');
-const fs = require('fs');
 require('dotenv').config({ path: process.env.ENV_FILE || '.env' });
 
-const { createClient } = require('@libsql/client');
+const { Pool, types } = require('pg');
 
+types.setTypeParser(20, Number);
+types.setTypeParser(1700, (value) => (value === null ? null : Number(value)));
+
+const LOCAL_SUPABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-const url = process.env.TURSO_URL || process.env.TURSO_DATABASE_URL || (
-  isProduction ? null : `file:${path.resolve('./server/data/dev.db')}`
-);
-const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
 
-if (!url) {
-  throw new Error('Database is not configured. Set TURSO_URL and TURSO_AUTH_TOKEN in the deployment environment.');
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.SUPABASE_DB_URL ||
+  (isProduction ? null : LOCAL_SUPABASE_URL);
+
+if (!connectionString) {
+  throw new Error(
+    'Postgres is not configured. Set DATABASE_URL or POSTGRES_URL in the deployment environment.'
+  );
 }
 
-// Ensure local data directory exists for file:// URLs (local dev only)
-if (url.startsWith('file:')) {
-  if (isProduction) {
-    throw new Error('Production deployments must use Turso. file: database URLs are only supported for local development.');
-  }
-  const filePath = url.replace(/^file:/, '');
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
+const isLocalConnection = /(?:localhost|127\.0\.0\.1|\[::1\])/.test(connectionString);
+const pool = new Pool({
+  connectionString,
+  ssl: isLocalConnection ? false : { rejectUnauthorized: false },
+  max: Number(process.env.PG_POOL_MAX || 5),
+});
 
-const client = createClient({ url, authToken });
-
-// Migrations embedded inline — no filesystem reads needed on Vercel.
-// APPEND ONLY: never edit existing entries, only add new ones at the end.
+// APPEND ONLY: never edit existing entries in production; add new migrations at the end.
 const MIGRATIONS = [
   {
     version: '001_initial',
     statements: [
       `CREATE TABLE IF NOT EXISTS tenants (
-        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        id            BIGSERIAL PRIMARY KEY,
         account_code  TEXT NOT NULL UNIQUE,
         name          TEXT NOT NULL,
         address       TEXT DEFAULT '',
@@ -43,23 +45,23 @@ const MIGRATIONS = [
         accent_color  TEXT DEFAULT '#CC0000',
         logo_url      TEXT DEFAULT '',
         status        TEXT NOT NULL DEFAULT 'active',
-        created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
-        updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        created_at    INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER),
+        updated_at    INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER)
       )`,
       `CREATE TABLE IF NOT EXISTS users (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id    INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+        id           BIGSERIAL PRIMARY KEY,
+        tenant_id    BIGINT REFERENCES tenants(id) ON DELETE CASCADE,
         username     TEXT NOT NULL,
         role         TEXT NOT NULL DEFAULT 'csr',
         pin_hash     TEXT NOT NULL,
         display_name TEXT DEFAULT '',
         is_active    INTEGER NOT NULL DEFAULT 1,
-        created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+        created_at   INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER),
         UNIQUE(tenant_id, username)
       )`,
       `CREATE TABLE IF NOT EXISTS sessions (
         id                  TEXT PRIMARY KEY,
-        tenant_id           INTEGER NOT NULL REFERENCES tenants(id),
+        tenant_id           BIGINT NOT NULL REFERENCES tenants(id),
         timestamp           INTEGER NOT NULL,
         is_new_patient      INTEGER NOT NULL DEFAULT 0,
         contact_name        TEXT DEFAULT '',
@@ -75,7 +77,7 @@ const MIGRATIONS = [
         usage_env           TEXT DEFAULT '',
         lens_flags          TEXT DEFAULT '[]',
         csr_outcome         TEXT DEFAULT NULL,
-        csr_purchase_amount REAL DEFAULT 0,
+        csr_purchase_amount NUMERIC DEFAULT 0,
         csr_invoice_number  TEXT DEFAULT '',
         csr_purchase_type   TEXT DEFAULT '',
         csr_no_sale_reason  TEXT DEFAULT '',
@@ -84,27 +86,27 @@ const MIGRATIONS = [
         csr_name            TEXT DEFAULT '',
         csr_skills          TEXT DEFAULT NULL,
         csr_assessed_at     INTEGER DEFAULT NULL,
-        csr_user_id         INTEGER REFERENCES users(id),
+        csr_user_id         BIGINT REFERENCES users(id),
         deleted_at          INTEGER DEFAULT NULL,
-        deleted_by          INTEGER REFERENCES users(id),
-        created_at          INTEGER NOT NULL DEFAULT (unixepoch()),
-        updated_at          INTEGER NOT NULL DEFAULT (unixepoch())
+        deleted_by          BIGINT REFERENCES users(id),
+        created_at          INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER),
+        updated_at          INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER)
       )`,
-      `CREATE INDEX IF NOT EXISTS idx_sessions_tenant    ON sessions(tenant_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_sessions_tenant ON sessions(tenant_id)`,
       `CREATE INDEX IF NOT EXISTS idx_sessions_timestamp ON sessions(timestamp)`,
-      `CREATE INDEX IF NOT EXISTS idx_sessions_deleted   ON sessions(deleted_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_sessions_deleted ON sessions(deleted_at)`,
       `CREATE TABLE IF NOT EXISTS contact_submissions (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        id         BIGSERIAL PRIMARY KEY,
         name       TEXT NOT NULL,
         email      TEXT NOT NULL,
         message    TEXT NOT NULL,
-        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        created_at INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER)
       )`,
       `CREATE TABLE IF NOT EXISTS emulation_log (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-        dev_user_id  INTEGER NOT NULL REFERENCES users(id),
-        tenant_id    INTEGER NOT NULL REFERENCES tenants(id),
-        started_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+        id           BIGSERIAL PRIMARY KEY,
+        dev_user_id  BIGINT NOT NULL REFERENCES users(id),
+        tenant_id    BIGINT NOT NULL REFERENCES tenants(id),
+        started_at   INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER),
         ended_at     INTEGER DEFAULT NULL,
         ip_address   TEXT DEFAULT ''
       )`,
@@ -113,45 +115,72 @@ const MIGRATIONS = [
   {
     version: '002_user_email',
     statements: [
-      `ALTER TABLE users ADD COLUMN email TEXT DEFAULT ''`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT DEFAULT ''`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email != ''`,
     ],
   },
   {
     version: '003_admin_password',
     statements: [
-      `ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT NULL`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT DEFAULT NULL`,
     ],
   },
 ];
 
+function normalizeSql(sql, params = []) {
+  let index = 0;
+  let normalized = sql
+    .replace(/unixepoch\(\)/gi, 'FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER')
+    .replace(/\?/g, () => `$${++index}`);
+
+  if (
+    /^\s*insert\s+into\s+(tenants|users|contact_submissions|emulation_log)\b/i.test(normalized) &&
+    !/\breturning\b/i.test(normalized)
+  ) {
+    normalized = normalized.replace(/;?\s*$/, ' RETURNING id');
+  }
+
+  return { text: normalized, values: params };
+}
+
 async function runMigrations() {
-  await client.execute(
+  await pool.query(
     `CREATE TABLE IF NOT EXISTS schema_migrations (
       version    TEXT PRIMARY KEY,
-      applied_at INTEGER NOT NULL DEFAULT (unixepoch())
+      applied_at INTEGER NOT NULL DEFAULT (FLOOR(EXTRACT(EPOCH FROM NOW()))::INTEGER)
     )`
   );
 
   for (const migration of MIGRATIONS) {
-    const result = await client.execute({
-      sql: 'SELECT 1 FROM schema_migrations WHERE version = ?',
-      args: [migration.version],
-    });
-    if (result.rows.length > 0) continue;
+    const applied = await pool.query(
+      'SELECT 1 FROM schema_migrations WHERE version = $1',
+      [migration.version]
+    );
+    if (applied.rowCount > 0) continue;
 
-    for (const stmt of migration.statements) {
-      await client.execute(stmt);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const statement of migration.statements) {
+        await client.query(statement);
+      }
+      await client.query('INSERT INTO schema_migrations (version) VALUES ($1)', [migration.version]);
+      await client.query('COMMIT');
+      console.log(`Migration applied: ${migration.version}`);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-    await client.execute({
-      sql: 'INSERT INTO schema_migrations (version) VALUES (?)',
-      args: [migration.version],
-    });
-    console.log(`Migration applied: ${migration.version}`);
   }
 }
 
-// Wrap @libsql/client to match the existing db.prepare(sql).get/all/run() API
+async function query(sql, params = []) {
+  const statement = normalizeSql(sql, params);
+  return pool.query(statement);
+}
+
 const db = {
   async _migrate() {
     await runMigrations();
@@ -160,28 +189,42 @@ const db = {
   prepare(sql) {
     return {
       async get(...args) {
-        const result = await client.execute({ sql, args });
+        const result = await query(sql, args);
         return result.rows[0] ?? null;
       },
       async all(...args) {
-        const result = await client.execute({ sql, args });
+        const result = await query(sql, args);
         return result.rows;
       },
       async run(...args) {
-        const result = await client.execute({ sql, args });
+        const result = await query(sql, args);
         return {
-          lastInsertRowid: Number(result.lastInsertRowid ?? 0),
-          changes: result.rowsAffected ?? 0,
+          lastInsertRowid: Number(result.rows[0]?.id ?? 0),
+          changes: result.rowCount ?? 0,
         };
       },
     };
   },
 
   async exec(sql) {
-    const statements = sql.split(';').map(s => s.trim()).filter(Boolean);
-    for (const stmt of statements) {
-      await client.execute(stmt);
+    const statements = sql.split(';').map((s) => s.trim()).filter(Boolean);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const statement of statements) {
+        await client.query(normalizeSql(statement));
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
+  },
+
+  async close() {
+    await pool.end();
   },
 };
 

@@ -14,22 +14,28 @@
     "seed": "node scripts/seed.js",
     "seed:reset": "node scripts/seed-reset.js",
     "migrate": "node scripts/migrate.js",
-    "create-tenant": "node scripts/create-tenant.js"
+    "create-tenant": "node scripts/create-tenant.js",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:db:reset": "supabase db reset",
+    "supabase:migration:new": "supabase migration new"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.3",
     "@vercel/analytics": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@vitejs/plugin-legacy": "^8.0.1",
     "concurrently": "^8.2.2",
     "nodemon": "^3.1.0",
+    "supabase": "^2.98.2",
     "vite": "^8.0.12"
   }
 }
