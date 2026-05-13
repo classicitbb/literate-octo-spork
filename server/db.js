@@ -23,7 +23,8 @@ async function runMigrations() {
     applied_at INTEGER NOT NULL DEFAULT (unixepoch())
   )`);
 
-  const migrationsDir = path.join(__dirname, 'migrations');
+  // process.cwd() = project root both locally and on Vercel (/var/task)
+  const migrationsDir = path.join(process.cwd(), 'server', 'migrations');
   const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
   for (const file of files) {
