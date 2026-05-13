@@ -32,7 +32,7 @@ let currentCard = -1;
 let isNewPatient = false;
 let currentAnswers = {};
 let patientContact = { name: '', phone: '', email: '' };
-let _storeName = 'PriceSmart Optical';
+let _storeName = 'Patient Smart App';
 let _welcomeMsg = "While you wait, let us get to know your style a little — so we can make the most of your visit today.";
 let _publicCode = null; // set when launched from a QR/link without staff auth
 
