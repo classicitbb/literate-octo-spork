@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config({ path: process.env.ENV_FILE || '.env' });
 
+const bcrypt = require('bcryptjs');
 const { Pool, types } = require('pg');
 
 types.setTypeParser(20, Number);
@@ -189,6 +190,36 @@ async function runMigrations() {
   }
 }
 
+async function bootstrapHostAdmin() {
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+
+  if (!email && !password) return;
+  if (!email || !password) {
+    throw new Error('Both BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD are required to bootstrap a host admin.');
+  }
+  if (!email.includes('@')) {
+    throw new Error('BOOTSTRAP_ADMIN_EMAIL must be a valid email address.');
+  }
+  if (password.length < 8) {
+    throw new Error('BOOTSTRAP_ADMIN_PASSWORD must be at least 8 characters.');
+  }
+
+  const existing = await pool.query(
+    "SELECT id FROM users WHERE role = 'dev' AND lower(email) = lower($1)",
+    [email]
+  );
+  if (existing.rowCount > 0) return;
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await pool.query(
+    `INSERT INTO users (tenant_id, username, role, pin_hash, password_hash, display_name, email)
+     VALUES (NULL, 'host-admin', 'dev', '', $1, 'Host Admin', $2)`,
+    [passwordHash, email]
+  );
+  console.log(`Bootstrapped host admin: ${email}`);
+}
+
 async function query(sql, params = []) {
   const statement = normalizeSql(sql, params);
   return pool.query(statement);
@@ -197,6 +228,7 @@ async function query(sql, params = []) {
 const db = {
   async _migrate() {
     await runMigrations();
+    await bootstrapHostAdmin();
   },
 
   prepare(sql) {

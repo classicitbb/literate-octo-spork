@@ -30,6 +30,7 @@ function getRoute() {
   }
   if (hash === '#/login') return { type: 'login' };
   if (hash === '#/admin-login') return { type: 'admin-login' };
+  if (hash === '#/setup') return { type: 'setup' };
   return { type: 'marketing' };
 }
 
@@ -41,18 +42,6 @@ async function boot() {
     await mountIntakePublic(route.code);
     return;
   }
-
-  // Check for first-time setup before anything else
-  try {
-    const r = await fetch('/api/auth/setup-status');
-    if (r.ok) {
-      const { needsSetup } = await r.json();
-      if (needsSetup) {
-        mountSetup();
-        return;
-      }
-    }
-  } catch {}
 
   // Authenticated session — go straight to the app
   const token = api.getToken();
@@ -68,6 +57,11 @@ async function boot() {
 
   if (route.type === 'admin-login') {
     mountAdminLogin();
+    return;
+  }
+
+  if (route.type === 'setup') {
+    mountSetup();
     return;
   }
 
