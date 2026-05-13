@@ -5,6 +5,8 @@ import './styles/admin.css';
 import './styles/shared.css';
 import './styles/marketing.css';
 
+import { inject } from '@vercel/analytics';
+
 import { api, parseJwt, isTokenValid } from './api.js';
 import { setAllLogos, applyBranding } from './components/branding.js';
 import { initModeStrip, switchView } from './components/modeStrip.js';
@@ -189,3 +191,6 @@ function onViewSwitch(mode) {
 
 // Start
 boot();
+
+// Initialize Vercel Web Analytics
+inject();
