@@ -17,6 +17,7 @@ import { renderPublicHTML, bindPublicEvents } from './pages/public.js';
 import { renderMarketingHTML, bindMarketingEvents } from './pages/marketing.js';
 import { renderDevHTML, initDev } from './pages/dev.js';
 import { renderSetupHTML, bindSetupEvents } from './pages/setup.js';
+import { renderAdminLoginHTML, bindAdminLoginEvents } from './pages/adminLogin.js';
 
 window.toggleFullscreen = toggleFullscreen;
 
@@ -28,6 +29,7 @@ function getRoute() {
     return { type: 'intake', code: decodeURIComponent(hash.slice('#/intake/'.length)) };
   }
   if (hash === '#/login') return { type: 'login' };
+  if (hash === '#/admin-login') return { type: 'admin-login' };
   return { type: 'marketing' };
 }
 
@@ -64,6 +66,11 @@ async function boot() {
     return;
   }
 
+  if (route.type === 'admin-login') {
+    mountAdminLogin();
+    return;
+  }
+
   // Default: marketing page
   mountMarketing();
 }
@@ -87,6 +94,11 @@ function mountSetup() {
   bindSetupEvents(onLogin);
 }
 
+function mountAdminLogin() {
+  document.getElementById('app').innerHTML = renderAdminLoginHTML();
+  bindAdminLoginEvents(onLogin);
+}
+
 async function mountIntakePublic(code) {
   let tenantConfig = null;
   try {
@@ -99,7 +111,7 @@ async function mountIntakePublic(code) {
   document.getElementById('app').innerHTML = `
     <div id="patient-view" class="view active">
       <div class="patient-topbar">
-        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
+        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="Patient Smart App"></div>
         <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
       <div class="patient-header">
@@ -248,7 +260,7 @@ function mountApp(payload, tenantConfig) {
   let html = `
     <div id="patient-view" class="view active">
       <div class="patient-topbar">
-        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
+        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="Patient Smart App"></div>
         <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
       <div class="patient-header">

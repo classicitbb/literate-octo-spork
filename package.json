@@ -1,5 +1,5 @@
 {
-  "name": "pricesmart-optical",
+  "name": "patient-smart-app",
   "version": "2.0.0",
   "private": true,
   "scripts": {
@@ -11,19 +11,20 @@
     "build:staging": "vite build client --mode staging",
     "start": "node server/index.js",
     "start:staging": "node --env-file=.env.staging server/index.js",
+    "seed": "node scripts/seed.js",
+    "seed:reset": "node scripts/seed-reset.js",
     "migrate": "node scripts/migrate.js",
-    "migrate:staging": "node --env-file=.env.staging scripts/migrate.js",
-    "seed:staging": "node --env-file=.env.staging scripts/seed-dev.js",
     "create-tenant": "node scripts/create-tenant.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "@vercel/analytics": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
-    "jsonwebtoken": "^9.0.2",
-    "@vercel/analytics": "^1.0.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-legacy": "^8.0.1",

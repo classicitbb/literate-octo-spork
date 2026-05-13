@@ -9,13 +9,13 @@ export function renderPublicHTML() {
   <div>
     <div class="login-brand">
       <span class="login-brand-icon">👓</span>
-      <div class="login-brand-name">Patient Smart Optical</div>
-      <div class="login-brand-sub">Staff &amp; Admin Portal</div>
+      <div class="login-brand-name">Patient Smart App</div>
+      <div class="login-brand-sub">Staff Login</div>
     </div>
 
     <div class="login-card">
       <h2>Sign in to your account</h2>
-      <p>Enter your email address and PIN to continue.</p>
+      <p>Enter your email and PIN to access your clinic's app.</p>
 
       <div id="loginError" class="login-error"></div>
 

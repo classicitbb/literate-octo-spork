@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { signToken, signRefreshToken, verifyRefreshToken, comparePin, hashPin } = require('../services/auth');
 const { requireAuth } = require('../middleware/auth');
@@ -216,6 +217,43 @@ router.post('/emulate-end', requireAuth, async (req, res) => {
   if (req.user.isEmulation && req.user.emulationLogId) {
     await db.prepare('UPDATE emulation_log SET ended_at = unixepoch() WHERE id = ?').run(req.user.emulationLogId);
   }
+  res.json({ ok: true });
+});
+
+// POST /api/auth/admin-login — email + password login for host admin (dev role)
+router.post('/admin-login', async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+
+  const user = await db.prepare(
+    `SELECT * FROM users WHERE lower(email) = lower(?) AND role = 'dev' AND is_active = 1`
+  ).get(email.trim());
+
+  if (!user || !user.password_hash) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const payload = { userId: user.id, role: 'dev', tenantId: null, displayName: user.display_name || 'Admin' };
+  const token = issueTokens(res, payload, user.id);
+  res.json({ token, user: { ...payload, email: user.email } });
+});
+
+// PATCH /api/auth/admin-change-password — change password (host admin only)
+router.patch('/admin-change-password', requireAuth, async (req, res) => {
+  if (req.user.role !== 'dev') return res.status(403).json({ error: 'Forbidden' });
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'currentPassword and newPassword required' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.userId);
+  if (!user || !user.password_hash) return res.status(400).json({ error: 'No password set on this account' });
+
+  const ok = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Current password is incorrect' });
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, req.user.userId);
   res.json({ ok: true });
 });
 

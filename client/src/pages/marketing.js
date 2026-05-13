@@ -7,17 +7,17 @@ export function renderMarketingHTML() {
 
   <header class="mktg-header">
     <div class="mktg-logo">
-      <span class="mktg-logo-icon">👓</span>
-      <span class="mktg-logo-text">Patient Smart<strong> Optical</strong></span>
+      <span class="mktg-logo-icon">🏥</span>
+      <span class="mktg-logo-text">Patient Smart<strong> App</strong></span>
     </div>
     <a href="#/login" class="mktg-login-btn">Staff Login →</a>
   </header>
 
   <section class="mktg-hero">
     <div class="mktg-hero-inner">
-      <div class="mktg-hero-badge">Built for optical retailers</div>
-      <h1 class="mktg-hero-title">Turn every patient visit<br>into a sale.</h1>
-      <p class="mktg-hero-sub">Patient Smart Optical is the simple subscription platform that modernises your patient intake, coaches your sales team, and gives you the insights to grow — all from a single dashboard.</p>
+      <div class="mktg-hero-badge">Built for patient-focused practices</div>
+      <h1 class="mktg-hero-title">Smart intake.<br>Better outcomes.</h1>
+      <p class="mktg-hero-sub">Patient Smart App is the simple subscription platform that modernises your patient intake, guides your team, and gives you the data to grow — all from a single dashboard.</p>
       <a href="#contact" class="mktg-cta-btn">Get Started Today</a>
     </div>
   </section>
@@ -29,12 +29,12 @@ export function renderMarketingHTML() {
       <div class="mktg-feature-card">
         <div class="mktg-feature-icon">📋</div>
         <h3>Digital Patient Intake</h3>
-        <p>Replace clipboards with a guided tablet experience. Patients complete a personalised questionnaire while they wait — automatically scored before the consultation begins.</p>
+        <p>Replace clipboards with a guided tablet experience. Patients complete a personalised questionnaire while they wait — automatically scored before the appointment begins.</p>
       </div>
       <div class="mktg-feature-card">
         <div class="mktg-feature-icon">📊</div>
         <h3>Built-in Sales Coaching</h3>
-        <p>Every visit generates a purchase-readiness score, budget tier, and style profile. Your team arrives at the frame floor knowing exactly what to recommend.</p>
+        <p>Every visit generates a readiness score and patient profile. Your team arrives at each appointment knowing exactly what to prioritise.</p>
       </div>
       <div class="mktg-feature-card">
         <div class="mktg-feature-icon">🔍</div>
@@ -61,15 +61,18 @@ export function renderMarketingHTML() {
       <div class="mktg-contact-form">
         <input type="text"  id="mktgName"    placeholder="Your name"                   class="mktg-input">
         <input type="email" id="mktgEmail"   placeholder="Email address"               class="mktg-input">
-        <textarea           id="mktgMessage" placeholder="Tell us about your optical centre…" class="mktg-textarea"></textarea>
+        <textarea           id="mktgMessage" placeholder="Tell us about your practice…" class="mktg-textarea"></textarea>
         <button id="mktgSubmitBtn" class="mktg-submit-btn">Send Message</button>
       </div>
     </div>
   </section>
 
   <footer class="mktg-footer">
-    <span>© ${new Date().getFullYear()} Patient Smart Optical</span>
-    <a href="#/login" class="mktg-footer-login">Staff Login</a>
+    <span>© ${new Date().getFullYear()} Patient Smart App</span>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <a href="#/login" class="mktg-footer-login">Staff Login</a>
+      <a href="#/admin-login" class="mktg-footer-login" style="opacity:0.5;font-size:0.8em;">Admin</a>
+    </div>
   </footer>
 
 </div>`;
