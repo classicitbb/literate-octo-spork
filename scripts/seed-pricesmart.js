@@ -13,8 +13,7 @@ const TENANT = {
   welcomeMsg: 'Welcome to PriceSmart Optical! Please complete this short form while you wait — it helps us serve you better.',
   primaryColor: '#003087',
   accentColor: '#CC0000',
-  adminPin: '9999',
-  csrPins: [
+  csrStaff: [
     { username: 'pricesmart-james', displayName: 'James Rampersad', pin: '1234' },
     { username: 'pricesmart-sandra', displayName: 'Sandra Ali', pin: '5678' },
     { username: 'pricesmart-keisha', displayName: 'Keisha Joseph', pin: '4321' },
@@ -123,14 +122,8 @@ async function seed() {
     ).run(TENANT.code, TENANT.name, TENANT.address, TENANT.welcomeMsg, TENANT.primaryColor, TENANT.accentColor);
     tenantId = result.lastInsertRowid;
 
-    // Admin user
-    const adminHash = await hashPin(TENANT.adminPin);
-    await db.prepare(
-      `INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'admin', ?, 'Store Manager')`
-    ).run(tenantId, TENANT.code + '-admin', adminHash);
-
-    // CSR staff
-    for (const csr of TENANT.csrPins) {
+    // CSR staff only — no store admin created here; manage host access via BOOTSTRAP_ADMIN_EMAIL
+    for (const csr of TENANT.csrStaff) {
       const csrHash = await hashPin(csr.pin);
       await db.prepare(
         `INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, 'csr', ?, ?)`
@@ -153,7 +146,7 @@ async function seed() {
     const score = scoreAnswers(answers);
     const ts = dayStartTs + i * intervalSecs + Math.floor(Math.random() * 120); // slight jitter
     const id = randomId();
-    const csrUser = TENANT.csrPins[p.csrIdx];
+    const csrUser = TENANT.csrStaff[p.csrIdx];
 
     await db.prepare(
       `INSERT INTO sessions
@@ -199,12 +192,12 @@ async function seed() {
   }
 
   console.log(`Created ${created} sessions for today's business day.`);
-  console.log('\nPriceSmart login credentials:');
+  console.log('\nPriceSmart CSR login credentials:');
   console.log(`  Tenant code : ${TENANT.code}`);
-  console.log(`  Admin PIN   : ${TENANT.adminPin}`);
-  TENANT.csrPins.forEach(c => {
+  TENANT.csrStaff.forEach(c => {
     console.log(`  ${c.displayName.padEnd(20)}: PIN ${c.pin}`);
   });
+  console.log('  (Host admin access via BOOTSTRAP_ADMIN_EMAIL — no store-level admin created)');
 }
 
 seed().catch(e => { console.error(e); process.exit(1); });
