@@ -14,35 +14,12 @@ router.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
 });
 
-function cleanText(value, maxLength) {
-  return String(value || '').trim().slice(0, maxLength);
-}
-
-function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 router.post('/contact', async (req, res) => {
-  const name = cleanText(req.body?.name, 120);
-  const email = cleanText(req.body?.email, 160).toLowerCase();
-  const message = cleanText(req.body?.message, 1200);
-  const region = cleanText(req.body?.region, 20).toUpperCase();
-  const consentAccepted = req.body?.consentAccepted === true;
-
+  const { name, email, message } = req.body || {};
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
   }
-  if (!isValidEmail(email)) {
-    return res.status(400).json({ error: 'A valid email address is required' });
-  }
-  if (!consentAccepted) {
-    return res.status(400).json({ error: 'Contact consent is required' });
-  }
-
-  await db.prepare(`
-    INSERT INTO contact_submissions (name, email, message, consent_accepted, region)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(name, email, message, 1, region);
+  await db.prepare('INSERT INTO contact_submissions (name, email, message) VALUES (?, ?, ?)').run(name, email, message);
   res.json({ ok: true });
 });
 
