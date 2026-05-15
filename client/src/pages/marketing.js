@@ -200,7 +200,7 @@ export function bindMarketingEvents() {
     btn.disabled = true;
     btn.textContent = 'Sending…';
     try {
-      await api.post('/contact', { name, email, message, consentAccepted, region: 'US' });
+      await api.post('/contact', { name, email, message });
       showToast('Demo request sent. We\'ll be in touch soon.');
       document.getElementById('mktgName').value = '';
       document.getElementById('mktgEmail').value = '';
