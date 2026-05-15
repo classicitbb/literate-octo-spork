@@ -139,13 +139,6 @@ const MIGRATIONS = [
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT DEFAULT NULL`,
     ],
   },
-  {
-    version: '004_contact_compliance',
-    statements: [
-      `ALTER TABLE contact_submissions ADD COLUMN IF NOT EXISTS consent_accepted INTEGER NOT NULL DEFAULT 0`,
-      `ALTER TABLE contact_submissions ADD COLUMN IF NOT EXISTS region TEXT DEFAULT ''`,
-    ],
-  },
 ];
 
 function normalizeSql(sql, params = []) {
