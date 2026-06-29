@@ -18,56 +18,17 @@ function issueTokens(res, payload, userId) {
   return token;
 }
 
-// GET /api/auth/setup-status — public, returns whether first-time setup is needed
-router.get('/setup-status', async (req, res) => {
-  const row = await db.prepare('SELECT COUNT(*) as n FROM users').get();
-  res.json({ needsSetup: row.n === 0 });
-});
-
-// POST /api/auth/setup — first-time setup, only works when DB is empty
-router.post('/setup', async (req, res) => {
-  const row = await db.prepare('SELECT COUNT(*) as n FROM users').get();
-  if (row.n > 0) return res.status(409).json({ error: 'Already set up' });
-
-  const { storeName, email, pin } = req.body || {};
-  if (!storeName || !email || !pin) {
-    return res.status(400).json({ error: 'storeName, email, and pin required' });
-  }
-  if (!/^\d{4,8}$/.test(String(pin))) {
-    return res.status(400).json({ error: 'PIN must be 4–8 digits' });
-  }
-
-  const code = storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mystore';
-  const tenantResult = await db.prepare(
-    `INSERT INTO tenants (account_code, name, address, status) VALUES (?, ?, '', 'active')`
-  ).run(code, storeName.trim());
-  const tenantId = tenantResult.lastInsertRowid;
-
-  const pinHash = await hashPin(pin);
-  const userResult = await db.prepare(
-    `INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, 'admin', ?, 'Admin', ?)`
-  ).run(tenantId, code + '-admin', pinHash, email.trim().toLowerCase());
-  const userId = userResult.lastInsertRowid;
-
-  const payload = { userId, role: 'admin', tenantId, displayName: 'Admin' };
-  const token = issueTokens(res, payload, userId);
-
-  res.status(201).json({
-    token,
-    user: { ...payload, email: email.trim().toLowerCase() },
-    tenant: { id: tenantId, name: storeName.trim(), address: '' },
-  });
-});
-
 // POST /api/auth/login
+// Accepts: { email, pin } for staff/admin  OR  { accountCode, pin } (legacy / dev)
 router.post('/login', async (req, res) => {
   const { accountCode, email, pin } = req.body || {};
 
   if (!pin) return res.status(400).json({ error: 'pin required' });
   if (!email && !accountCode) return res.status(400).json({ error: 'email or accountCode required' });
 
+  // ── Email-based login (staff / admin) ──
   if (email) {
-    const user = await db.prepare(
+    const user = db.prepare(
       `SELECT u.*, t.account_code, t.name as tenant_name, t.address as tenant_address,
               t.status as tenant_status, t.primary_color, t.accent_color,
               t.logo_url, t.welcome_msg
@@ -102,10 +63,11 @@ router.post('/login', async (req, res) => {
       logoUrl: user.logo_url,
     } : null;
 
-    return res.json({ token, user: { ...payload, email: user.email || '' }, tenant });
+    return res.json({ token, user: payload, tenant });
   }
 
-  const devUser = await db.prepare(
+  // ── Account-code login (dev user or legacy) ──
+  const devUser = db.prepare(
     `SELECT * FROM users WHERE role = 'dev' AND username = ? AND is_active = 1`
   ).get(accountCode);
 
@@ -115,10 +77,10 @@ router.post('/login', async (req, res) => {
 
     const payload = { userId: devUser.id, role: 'dev', tenantId: null, displayName: devUser.display_name || 'Dev' };
     const token = issueTokens(res, payload, devUser.id);
-    return res.json({ token, user: { ...payload, email: devUser.email || '' }, tenant: null });
+    return res.json({ token, user: payload, tenant: null });
   }
 
-  const tenant = await db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
+  const tenant = db.prepare(`SELECT * FROM tenants WHERE account_code = ?`).get(accountCode);
   if (!tenant) return res.status(401).json({ error: 'Invalid account code' });
   if (tenant.status !== 'active') return res.status(403).json({ error: 'Account is ' + tenant.status });
 
@@ -213,7 +175,7 @@ router.patch('/me', requireAuth, async (req, res) => {
 });
 
 // POST /api/auth/emulate-end
-router.post('/emulate-end', requireAuth, async (req, res) => {
+router.post('/emulate-end', requireAuth, (req, res) => {
   if (req.user.isEmulation && req.user.emulationLogId) {
     await db.prepare('UPDATE emulation_log SET ended_at = unixepoch() WHERE id = ?').run(req.user.emulationLogId);
   }
