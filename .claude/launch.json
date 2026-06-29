@@ -2,22 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "Dev (full stack)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "Vite client",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Russe\\OneDrive\\Documents\\GitHub\\literate-octo-spork && npm run dev:client"],
       "port": 5173,
       "autoPort": true
     },
     {
       "name": "API server (Express)",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["nodemon", "server/index.js"],
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Russe\\OneDrive\\Documents\\GitHub\\literate-octo-spork && npm run dev:server"],
       "port": 3000
     },
     {
-      "name": "Vite client",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:client"],
+      "name": "Dev (full stack)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Russe\\OneDrive\\Documents\\GitHub\\literate-octo-spork && npm run dev"],
       "port": 5173,
       "autoPort": true
     }
