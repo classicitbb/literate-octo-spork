@@ -8,7 +8,7 @@ export function renderMarketingHTML() {
   <header class="mktg-header">
     <div class="mktg-logo">
       <span class="mktg-logo-icon">👓</span>
-      <span class="mktg-logo-text">PriceSmart<strong>Optical</strong></span>
+      <span class="mktg-logo-text">Patient Smart<strong> Optical</strong></span>
     </div>
     <a href="#/login" class="mktg-login-btn">Staff Login →</a>
   </header>
@@ -17,7 +17,7 @@ export function renderMarketingHTML() {
     <div class="mktg-hero-inner">
       <div class="mktg-hero-badge">Built for optical retailers</div>
       <h1 class="mktg-hero-title">Turn every patient visit<br>into a sale.</h1>
-      <p class="mktg-hero-sub">PriceSmart Optical is the simple subscription platform that modernises your patient intake, coaches your sales team, and gives you the insights to grow — all from a single dashboard.</p>
+      <p class="mktg-hero-sub">Patient Smart Optical is the simple subscription platform that modernises your patient intake, coaches your sales team, and gives you the insights to grow — all from a single dashboard.</p>
       <a href="#contact" class="mktg-cta-btn">Get Started Today</a>
     </div>
   </section>
@@ -68,7 +68,7 @@ export function renderMarketingHTML() {
   </section>
 
   <footer class="mktg-footer">
-    <span>© ${new Date().getFullYear()} PriceSmart Optical</span>
+    <span>© ${new Date().getFullYear()} Patient Smart Optical</span>
     <a href="#/login" class="mktg-footer-login">Staff Login</a>
   </footer>
 

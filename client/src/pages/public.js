@@ -9,7 +9,7 @@ export function renderPublicHTML() {
   <div>
     <div class="login-brand">
       <span class="login-brand-icon">👓</span>
-      <div class="login-brand-name">PriceSmart Optical</div>
+      <div class="login-brand-name">Patient Smart Optical</div>
       <div class="login-brand-sub">Staff &amp; Admin Portal</div>
     </div>
 
@@ -67,15 +67,26 @@ async function handleLogin(onLogin) {
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
 
   try {
-    const data = await api.post('/auth/login', { email, pin });
+    // Use raw fetch — bypasses the api.js 401 interceptor which would reload the page
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, pin }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg =
+        res.status === 401 ? 'Incorrect email or PIN. Please try again.' :
+        res.status === 403 ? 'This account is not active. Contact your administrator.' :
+        data.error || 'Login failed — please check your details and try again.';
+      showError(errorEl, msg);
+      return;
+    }
     api.setToken(data.token);
     onLogin(data);
-  } catch (e) {
-    const msg =
-      e.status === 401 ? 'Incorrect email or PIN. Please try again.' :
-      e.status === 403 ? 'This account is not active. Contact your administrator.' :
-      'Login failed — please check your details and try again.';
-    showError(errorEl, msg);
+  } catch {
+    showError(errorEl, 'Could not reach the server. Please try again.');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In →'; }
   }
