@@ -7,10 +7,10 @@ const tenantGuard = require('../middleware/tenantGuard');
 const router = express.Router();
 
 // GET /api/config
-router.get('/', requireAuth, tenantGuard, (req, res) => {
+router.get('/', requireAuth, tenantGuard, async (req, res) => {
   const tenantId = req.user.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'No tenant' });
-  const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenantId);
+  const tenant = await db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenantId);
   if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
   res.json({
     id: tenant.id,
@@ -26,11 +26,11 @@ router.get('/', requireAuth, tenantGuard, (req, res) => {
 });
 
 // PATCH /api/config
-router.patch('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
+router.patch('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
   const tenantId = req.user.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'No tenant' });
   const { name, address, welcomeMsg, primaryColor, accentColor } = req.body || {};
-  db.prepare(`UPDATE tenants SET
+  await db.prepare(`UPDATE tenants SET
     name = COALESCE(?, name),
     address = COALESCE(?, address),
     welcome_msg = COALESCE(?, welcome_msg),
@@ -48,11 +48,11 @@ router.patch('/pins', requireAuth, requireRole('admin', 'dev'), tenantGuard, asy
   if (!/^\d{4}$/.test(String(newPin))) return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
 
   const tenantId = req.user.tenantId;
-  const user = db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(userId, tenantId);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(userId, tenantId);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const pinHash = await hashPin(newPin);
-  db.prepare('UPDATE users SET pin_hash = ? WHERE id = ?').run(pinHash, userId);
+  await db.prepare('UPDATE users SET pin_hash = ? WHERE id = ?').run(pinHash, userId);
   res.json({ ok: true });
 });
 

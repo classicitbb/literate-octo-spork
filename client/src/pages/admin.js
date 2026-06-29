@@ -260,6 +260,11 @@ export function bindAdminEvents(appUrl) {
   }
 
   generateQR(appUrl);
+
+  const signOutBtn = document.getElementById('adminSignOutBtn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', () => api.logout());
+  }
 }
 
 export function showPrintPage() {
@@ -281,7 +286,10 @@ export function renderAdminHTML(tenantConfig) {
       <h1>📊 Admin Dashboard</h1>
       <p>${tenantConfig?.name || 'PriceSmart Optical'} — Today's Overview</p>
     </div>
-    <span class="badge-red">ADMIN</span>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span class="badge-red">ADMIN</span>
+      <button id="adminSignOutBtn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;">Sign Out</button>
+    </div>
   </div>
 
   <div class="admin-nav">

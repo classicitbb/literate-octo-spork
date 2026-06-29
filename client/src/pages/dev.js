@@ -6,10 +6,10 @@ export function renderDevHTML() {
 <div id="dev-view" class="view">
   <div class="dev-header">
     <div>
-      <h1>🛠 Dev Console</h1>
-      <p>PriceSmart Optical — Account Management</p>
+      <h1>🛠 Admin Console</h1>
+      <p>Patient Smart App — Tenant Management</p>
     </div>
-    <span style="background:#1d4ed8;color:white;border-radius:50px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:0.08em;">DEV</span>
+    <span style="background:#1d4ed8;color:white;border-radius:50px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:0.08em;">ADMIN</span>
   </div>
 
   <div class="dev-card">
@@ -20,8 +20,10 @@ export function renderDevHTML() {
   <div class="dev-card">
     <h3>Create New Tenant</h3>
     <input class="dev-input" id="devNewCode" placeholder="Account code (e.g. trinidad-branch-3)">
-    <input class="dev-input" id="devNewName" placeholder="Store name (e.g. PriceSmart Optical — Chaguanas)">
+    <input class="dev-input" id="devNewName" placeholder="Clinic name (e.g. Demo Clinic — North)">
     <input class="dev-input" id="devNewAddress" placeholder="Store address (optional)">
+    <input class="dev-input" id="devNewAdminEmail" type="email" placeholder="Admin email">
+    <input class="dev-input" id="devNewCsrEmail" type="email" placeholder="CSR email">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <input class="dev-input" id="devNewAdminPin" placeholder="Admin PIN (4 digits)" maxlength="4" style="margin-bottom:0">
       <input class="dev-input" id="devNewCsrPin" placeholder="CSR PIN (4 digits)" maxlength="4" style="margin-bottom:0">
@@ -35,12 +37,22 @@ export function renderDevHTML() {
     <h3>Emulation Log</h3>
     <div id="devEmulationLog"><div style="color:#64748B;text-align:center;padding:12px">Loading...</div></div>
   </div>
+
+  <div class="dev-card">
+    <h3>Change Admin Password</h3>
+    <div id="changePwError" style="display:none;color:#f87171;font-size:.85rem;margin-bottom:10px;"></div>
+    <input class="dev-input" id="changePwCurrent" type="password" placeholder="Current password">
+    <input class="dev-input" id="changePwNew"     type="password" placeholder="New password (min 8 characters)">
+    <input class="dev-input" id="changePwConfirm" type="password" placeholder="Confirm new password">
+    <button class="dev-submit" id="changePwBtn">Update Password</button>
+  </div>
 </div>`;
 }
 
 export async function initDev() {
   await Promise.all([loadTenants(), loadEmulationLog()]);
   bindDevEvents();
+  bindChangePwEvents();
 }
 
 async function loadTenants() {
@@ -125,6 +137,34 @@ async function setTenantStatus(tenantId, status) {
   }
 }
 
+function bindChangePwEvents() {
+  const btn = document.getElementById('changePwBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const current = document.getElementById('changePwCurrent')?.value;
+    const newPw   = document.getElementById('changePwNew')?.value;
+    const confirm = document.getElementById('changePwConfirm')?.value;
+    const errEl   = document.getElementById('changePwError');
+    errEl.style.display = 'none';
+
+    if (!current || !newPw || !confirm) { errEl.textContent = 'All fields required.'; errEl.style.display = 'block'; return; }
+    if (newPw !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
+    if (newPw.length < 8) { errEl.textContent = 'New password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      await api.patch('/auth/admin-change-password', { currentPassword: current, newPassword: newPw });
+      showToast('Password updated successfully');
+      ['changePwCurrent','changePwNew','changePwConfirm'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    } catch (e) {
+      errEl.textContent = e.data?.error || 'Failed to update password.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Update Password';
+    }
+  });
+}
+
 function bindDevEvents() {
   const createBtn = document.getElementById('devCreateTenantBtn');
   if (createBtn) {
@@ -132,14 +172,17 @@ function bindDevEvents() {
       const code = document.getElementById('devNewCode')?.value.trim();
       const name = document.getElementById('devNewName')?.value.trim();
       const address = document.getElementById('devNewAddress')?.value.trim();
+      const adminEmail = document.getElementById('devNewAdminEmail')?.value.trim();
+      const csrEmail = document.getElementById('devNewCsrEmail')?.value.trim();
       const adminPin = document.getElementById('devNewAdminPin')?.value.trim();
       const csrPin = document.getElementById('devNewCsrPin')?.value.trim();
-      if (!code || !name || !adminPin || !csrPin) { showToast('Fill in all required fields', 'warning'); return; }
+      if (!code || !name || !adminEmail || !csrEmail || !adminPin || !csrPin) { showToast('Fill in all required fields', 'warning'); return; }
+      if (!adminEmail.includes('@') || !csrEmail.includes('@')) { showToast('Enter valid emails', 'warning'); return; }
       if (!/^\d{4}$/.test(adminPin) || !/^\d{4}$/.test(csrPin)) { showToast('PINs must be exactly 4 digits', 'warning'); return; }
       try {
-        await api.post('/dev/tenants', { accountCode: code, name, address, adminPin, csrPin });
+        await api.post('/dev/tenants', { accountCode: code, name, address, adminEmail, csrEmail, adminPin, csrPin });
         showToast(`Tenant "${name}" created`);
-        ['devNewCode','devNewName','devNewAddress','devNewAdminPin','devNewCsrPin'].forEach(id => {
+        ['devNewCode','devNewName','devNewAddress','devNewAdminEmail','devNewCsrEmail','devNewAdminPin','devNewCsrPin'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.value = '';
         });

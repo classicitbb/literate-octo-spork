@@ -14,6 +14,8 @@ import { renderAdminHTML, initAdmin, bindAdminEvents } from './pages/admin.js';
 import { renderPublicHTML, bindPublicEvents } from './pages/public.js';
 import { renderMarketingHTML, bindMarketingEvents } from './pages/marketing.js';
 import { renderDevHTML, initDev } from './pages/dev.js';
+import { renderSetupHTML, bindSetupEvents } from './pages/setup.js';
+import { renderAdminLoginHTML, bindAdminLoginEvents } from './pages/adminLogin.js';
 
 window.toggleFullscreen = toggleFullscreen;
 
@@ -134,10 +136,91 @@ async function mountAuthenticated(token) {
 
 async function onLogin(loginData) {
   api.setToken(loginData.token);
+
+  // If user has no email set, prompt before entering the app
+  if (!loginData.user?.email) {
+    await showEmailSetupModal(loginData);
+    return;
+  }
+
   const payload = parseJwt(loginData.token);
   const tenantConfig = loginData.tenant;
   if (tenantConfig) applyBranding(tenantConfig);
   mountApp(payload, tenantConfig);
+}
+
+function showEmailSetupModal(loginData) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,.5);
+      display:flex;align-items:center;justify-content:center;z-index:9999;`;
+
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:32px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+        <h2 style="margin:0 0 8px;font-size:1.25rem;color:#111;">Set your email address</h2>
+        <p style="margin:0 0 20px;color:#666;font-size:.9rem;">
+          Your account needs an email address. This is how you'll sign in going forward.
+        </p>
+        <div id="emailModalError" style="display:none;color:#c0392b;font-size:.85rem;margin-bottom:12px;"></div>
+        <input id="emailModalInput" type="email" placeholder="you@example.com"
+          style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:16px;"
+          autocomplete="email">
+        <button id="emailModalBtn"
+          style="width:100%;padding:12px;background:#003087;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">
+          Save &amp; Continue →
+        </button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#emailModalInput');
+    const btn   = overlay.querySelector('#emailModalBtn');
+    const errEl = overlay.querySelector('#emailModalError');
+
+    input.focus();
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+    btn.addEventListener('click', save);
+
+    async function save() {
+      const email = input.value.trim();
+      if (!email || !email.includes('@')) {
+        errEl.textContent = 'Please enter a valid email address.';
+        errEl.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/auth/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${loginData.token}` },
+          credentials: 'include',
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Could not save email. Try again.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Save & Continue →';
+          return;
+        }
+        document.body.removeChild(overlay);
+        loginData.user.email = email;
+        const payload = parseJwt(loginData.token);
+        const tenantConfig = loginData.tenant;
+        if (tenantConfig) applyBranding(tenantConfig);
+        mountApp(payload, tenantConfig);
+        resolve();
+      } catch {
+        errEl.textContent = 'Could not reach the server. Please try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Save & Continue →';
+      }
+    }
+  });
 }
 
 function mountApp(payload, tenantConfig) {
@@ -147,7 +230,7 @@ function mountApp(payload, tenantConfig) {
   let html = `
     <div id="patient-view" class="view active">
       <div class="patient-topbar">
-        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
+        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="Patient Smart App"></div>
         <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
       <div class="patient-header">
@@ -189,3 +272,6 @@ function onViewSwitch(mode) {
 
 // Start
 boot();
+
+// Initialize Vercel Web Analytics
+inject();

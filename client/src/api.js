@@ -48,6 +48,12 @@ export const api = {
   setToken,
   getToken,
   clearToken,
+  logout: async () => {
+    try { await request('POST', '/auth/logout', {}); } catch {}
+    clearToken();
+    window.location.hash = '#/login';
+    window.location.reload();
+  },
 };
 
 export function parseJwt(token) {

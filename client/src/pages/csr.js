@@ -179,6 +179,12 @@ export function bindCSREvents() {
   if (refreshBtn) {
     refreshBtn.addEventListener('click', refreshCSRView);
   }
+
+  // Sign-out button
+  const signOutBtn = document.getElementById('csrSignOutBtn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', () => api.logout());
+  }
 }
 
 async function saveContactEdit() {
@@ -235,6 +241,7 @@ export function renderCSRHTML() {
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       <span class="badge-red">CSR</span>
       <button id="csrRefreshBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;">⟳ Refresh</button>
+      <button id="csrSignOutBtn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;">Sign Out</button>
     </div>
   </div>
 

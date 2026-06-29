@@ -7,15 +7,15 @@ const tenantGuard = require('../middleware/tenantGuard');
 const router = express.Router();
 
 // GET /api/users
-router.get('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
   const tenantId = req.user.tenantId;
-  const users = db.prepare(`SELECT id, username, role, display_name, is_active, created_at FROM users WHERE tenant_id = ?`).all(tenantId);
+  const users = await db.prepare(`SELECT id, username, role, display_name, is_active, created_at FROM users WHERE tenant_id = ?`).all(tenantId);
   res.json(users);
 });
 
 // POST /api/users
 router.post('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
-  const { username, pin, displayName, role } = req.body || {};
+  const { username, pin, displayName, role, email } = req.body || {};
   if (!username || !pin) return res.status(400).json({ error: 'username and pin required' });
   if (!/^\d{4}$/.test(String(pin))) return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
 
@@ -24,7 +24,7 @@ router.post('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (r
   const pinHash = await hashPin(pin);
 
   try {
-    const result = db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name) VALUES (?, ?, ?, ?, ?)`).run(tenantId, username, safeRole, pinHash, displayName || '');
+    const result = await db.prepare(`INSERT INTO users (tenant_id, username, role, pin_hash, display_name, email) VALUES (?, ?, ?, ?, ?, ?)`).run(tenantId, username, safeRole, pinHash, displayName || '', email || '');
     res.status(201).json({ id: result.lastInsertRowid });
   } catch (e) {
     if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'Username already exists' });
@@ -33,24 +33,28 @@ router.post('/', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (r
 });
 
 // PATCH /api/users/:id
-router.patch('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
-  const { displayName, isActive } = req.body || {};
+router.patch('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
+  const { displayName, isActive, email } = req.body || {};
   const tenantId = req.user.tenantId;
-  const user = db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(req.params.id, tenantId);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(req.params.id, tenantId);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  db.prepare('UPDATE users SET display_name = COALESCE(?, display_name), is_active = COALESCE(?, is_active) WHERE id = ?')
-    .run(displayName ?? null, isActive !== undefined ? (isActive ? 1 : 0) : null, req.params.id);
+  try {
+    await db.prepare('UPDATE users SET display_name = COALESCE(?, display_name), is_active = COALESCE(?, is_active), email = COALESCE(?, email) WHERE id = ?')
+      .run(displayName ?? null, isActive !== undefined ? (isActive ? 1 : 0) : null, email ?? null, req.params.id);
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'Email already in use' });
+    throw e;
+  }
   res.json({ ok: true });
 });
 
 // DELETE /api/users/:id — deactivate only
-router.delete('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin', 'dev'), tenantGuard, async (req, res) => {
   const tenantId = req.user.tenantId;
-  // Prevent admin deleting themselves
   if (Number(req.params.id) === req.user.userId) return res.status(400).json({ error: 'Cannot deactivate yourself' });
-  const user = db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(req.params.id, tenantId);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ? AND tenant_id = ?').get(req.params.id, tenantId);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  db.prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(req.params.id);
+  await db.prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 
