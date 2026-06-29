@@ -5,8 +5,6 @@ import './styles/admin.css';
 import './styles/shared.css';
 import './styles/marketing.css';
 
-import { inject } from '@vercel/analytics';
-
 import { api, parseJwt, isTokenValid } from './api.js';
 import { setAllLogos, applyBranding } from './components/branding.js';
 import { initModeStrip, switchView } from './components/modeStrip.js';
@@ -29,8 +27,6 @@ function getRoute() {
     return { type: 'intake', code: decodeURIComponent(hash.slice('#/intake/'.length)) };
   }
   if (hash === '#/login') return { type: 'login' };
-  if (hash === '#/admin-login') return { type: 'admin-login' };
-  if (hash === '#/setup') return { type: 'setup' };
   return { type: 'marketing' };
 }
 
@@ -55,16 +51,6 @@ async function boot() {
     return;
   }
 
-  if (route.type === 'admin-login') {
-    mountAdminLogin();
-    return;
-  }
-
-  if (route.type === 'setup') {
-    mountSetup();
-    return;
-  }
-
   // Default: marketing page
   mountMarketing();
 }
@@ -83,16 +69,6 @@ function mountPublic() {
   bindPublicEvents(onLogin);
 }
 
-function mountSetup() {
-  document.getElementById('app').innerHTML = renderSetupHTML();
-  bindSetupEvents(onLogin);
-}
-
-function mountAdminLogin() {
-  document.getElementById('app').innerHTML = renderAdminLoginHTML();
-  bindAdminLoginEvents(onLogin);
-}
-
 async function mountIntakePublic(code) {
   let tenantConfig = null;
   try {
@@ -105,7 +81,7 @@ async function mountIntakePublic(code) {
   document.getElementById('app').innerHTML = `
     <div id="patient-view" class="view active">
       <div class="patient-topbar">
-        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="Patient Smart App"></div>
+        <div class="patient-logo-img"><img id="navLogoImg" src="" alt="PriceSmart Optical"></div>
         <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
       <div class="patient-header">
